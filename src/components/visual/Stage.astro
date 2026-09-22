@@ -1,0 +1,100 @@
+---
+/**
+ * The Genkidama stage: a fixed, full-viewport WebGL island behind the hero
+ * and the story. The canvas is decorative (aria-hidden); every piece of
+ * meaning it carries is also in the page text.
+ */
+---
+
+<div class="stage" data-stage aria-hidden="true">
+  <div class="stage__labels" data-stage-labels></div>
+  <div class="stage__vignette"></div>
+</div>
+
+<script>
+  import { mountGenkidama } from '@scenes/genkidama';
+
+  const stage = document.querySelector<HTMLElement>('[data-stage]');
+  const labels = document.querySelector<HTMLElement>('[data-stage-labels]');
+  if (stage) {
+    let handle: Awaited<ReturnType<typeof mountGenkidama>> | null = null;
+    mountGenkidama(stage, labels).then((h) => (handle = h));
+    window.addEventListener('pagehide', () => handle?.dispose(), { once: true });
+  }
+</script>
+
+<style is:global>
+  .stage {
+    --stage-dim: 0;
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-stage);
+    background: var(--bg-0);
+    opacity: calc(1 - var(--stage-dim) * 0.8);
+    transition: opacity 120ms linear;
+  }
+  .stage .gk-canvas {
+    width: 100%;
+    height: 100%;
+  }
+  /* Edge falloff: keeps the corners quiet and the text legible. */
+  .stage__vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 70% at 50% 50%, transparent 55%, rgba(5, 7, 8, 0.65) 100%);
+  }
+
+  .stage__labels {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .gk-node-label {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    column-gap: 0.5em;
+    align-items: baseline;
+    padding-left: 22px;      /* clear of the glyph */
+    margin-top: -0.55em;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--fg-1);
+    white-space: nowrap;
+    opacity: 0;
+    will-change: transform, opacity;
+    transition: color var(--dur-base) var(--ease-out);
+  }
+  .gk-node-label::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 0.55em;
+    width: 8px;
+    height: 1px;
+    background: var(--line-strong);
+  }
+  .gk-node-label__index { color: var(--accent, var(--energy-500)); }
+  .gk-node-label__name { color: var(--fg-0); }
+  .gk-node-label__tool {
+    grid-column: 1 / -1;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--fg-3);
+    font-size: 0.9em;
+  }
+  .gk-node-label.is-active .gk-node-label__name { color: var(--accent, var(--energy-300)); text-shadow: var(--glow-text); }
+  .gk-node-label.is-active::before { background: var(--accent, var(--energy-500)); }
+
+  @media (max-width: 640px) {
+    .gk-node-label__tool { display: none; }
+  }
+</style>

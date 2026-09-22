@@ -1,0 +1,73 @@
+/* ==========================================================================
+   GENKIDAMA — motion
+   Motion is physical: attraction, inertia, energy transfer. DOM animation is
+   kept minimal; the WebGL stage carries the choreography. Everything here
+   must degrade to a static, complete state without JavaScript and under
+   prefers-reduced-motion.
+   ========================================================================== */
+
+/* Reveal primitives -------------------------------------------------------
+   Elements marked [data-reveal] are hidden only when JS is present (html.js)
+   and motion is allowed. GSAP animates them to their final state. */
+html.js:not(.reduced-motion) [data-reveal] {
+  opacity: 0;
+}
+html.js:not(.reduced-motion) [data-reveal='rule'] {
+  opacity: 1;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* Hairlines: a rule that "charges" from left to right ---------------------- */
+.rule {
+  height: 1px;
+  width: 100%;
+  background: var(--line);
+  position: relative;
+}
+.rule--energy {
+  background: linear-gradient(90deg, var(--energy-500), transparent 70%);
+  opacity: 0.7;
+}
+
+/* Carrier signals ---------------------------------------------------------- */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes carrier {
+  from { background-position: 0 0; }
+  to   { background-position: 24px 0; }
+}
+@keyframes scan {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(100%); }
+}
+@keyframes pulse-dot {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 211, 240, 0.55); }
+  100% { box-shadow: 0 0 0 10px rgba(34, 211, 240, 0); }
+}
+@keyframes dash-flow {
+  to { stroke-dashoffset: -48; }
+}
+
+.blink { animation: blink 1.1s steps(1) infinite; }
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--energy-500);
+  animation: pulse-dot 1.8s var(--ease-out) infinite;
+}
+
+/* Reduced motion ------------------------------------------------------------
+   Keep the concept, remove the aggression. Continuous loops stop; state
+   changes still happen but instantly or with very short durations. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .blink, .pulse-dot { animation: none; }
+}

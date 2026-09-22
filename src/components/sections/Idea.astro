@@ -1,0 +1,49 @@
+---
+import Marker from '@/components/visual/Marker.astro';
+---
+
+<section class="section idea" id="idea" aria-labelledby="idea-title">
+  <div class="container">
+    <div class="section__head">
+      <Marker index="01" title="The idea" />
+      <span class="label label--2xs">placeholder copy · content pass pending</span>
+    </div>
+
+    <div class="grid idea__grid">
+      <h2 id="idea-title" class="idea__statement display display--xl" style="grid-column: 1 / span 8" data-reveal>
+        A model does not need to <em>possess</em> every capability.<br />
+        It needs <span class="energy">access</span> to it.
+      </h2>
+
+      <aside class="idea__notes" style="grid-column: 10 / span 3" data-reveal data-reveal-delay="0.15">
+        <span class="label">hypothesis</span>
+        <ol class="idea__list">
+          <li><span class="idea__n">01</span>Capability is not the same thing as modality.</li>
+          <li><span class="idea__n">02</span>Routing to a specialist is cheaper than scaling a generalist.</li>
+          <li><span class="idea__n">03</span>Composed capabilities compound.</li>
+        </ol>
+      </aside>
+
+      <div class="rule" style="grid-column: 1 / -1" data-reveal="rule"></div>
+
+      <p class="prose prose--lead" style="grid-column: 1 / span 5" data-reveal>
+        Genkidama is an Eden AI research concept: a text-only model, given a catalogue of
+        specialist tools through an MCP server, can take on work that would otherwise require
+        a much larger multimodal model.
+      </p>
+      <p class="prose" style="grid-column: 7 / span 5" data-reveal data-reveal-delay="0.1">
+        The name comes from the Spirit Bomb: many sources of energy gathered into a single
+        force. The website you are scrolling is built the same way. Placeholder copy; the
+        content pass will replace this paragraph with the research framing.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .idea__statement em { font-style: normal; color: var(--fg-1); }
+  .idea__notes { display: grid; gap: var(--space-3); align-self: end; }
+  .idea__list { display: grid; gap: var(--space-3); font-size: var(--text-sm); color: var(--fg-1); }
+  .idea__list li { display: grid; grid-template-columns: 2.2rem 1fr; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--line); }
+  .idea__n { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--energy-500); }
+</style>

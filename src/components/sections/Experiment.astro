@@ -1,0 +1,51 @@
+---
+import Marker from '@/components/visual/Marker.astro';
+import BenchmarkComparison from '@/components/benchmark/BenchmarkComparison.astro';
+import LatencyChart from '@/components/benchmark/LatencyChart.astro';
+import ToolPathComparison from '@/components/benchmark/ToolPathComparison.astro';
+import ScenarioExplorer from '@/components/benchmark/ScenarioExplorer.astro';
+import { benchmarkPlaceholder } from '@data/benchmark';
+
+// Swap this import for the live loader when results land. Components accept
+// any BenchmarkDataset; skeletons appear wherever a metric is null.
+const data = benchmarkPlaceholder;
+---
+
+<section class="section experiment" id="experiment" aria-labelledby="exp-title">
+  <div class="container">
+    <div class="section__head">
+      <Marker index="05" title="The experiment" />
+      <span class="placeholder-badge"><span class="dot dot--ember" aria-hidden="true"></span> shell only · no benchmark claims</span>
+    </div>
+
+    <div class="grid">
+      <div style="grid-column: 1 / span 5" data-reveal>
+        <h2 id="exp-title" class="display display--lg">Same prompts. Same assets. Two routes.</h2>
+      </div>
+      <div style="grid-column: 7 / span 6" data-reveal data-reveal-delay="0.1">
+        <p class="prose">
+          A benchmark compares Gemini Pro and DeepSeek Pro under identical scenarios with the
+          MCP catalogue available to both. Gemini reads supported binary inputs natively;
+          DeepSeek reaches non-native modalities through MCP specialists. The panels below are
+          the visual shell for that data. Every value is deliberately empty until measurements
+          are connected.
+        </p>
+      </div>
+
+      <div style="grid-column: 1 / -1" data-reveal>
+        <BenchmarkComparison data={data} />
+      </div>
+
+      <div style="grid-column: 1 / span 7" data-reveal>
+        <LatencyChart data={data} />
+      </div>
+      <div style="grid-column: 8 / span 5" data-reveal data-reveal-delay="0.1">
+        <ToolPathComparison data={data} scenarioId="s01" />
+      </div>
+
+      <div style="grid-column: 1 / -1" data-reveal>
+        <ScenarioExplorer data={data} />
+      </div>
+    </div>
+  </div>
+</section>

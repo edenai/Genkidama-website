@@ -1,0 +1,155 @@
+---
+/**
+ * Browse scenarios: a keyboard-navigable tablist on the left, a detail panel
+ * on the right (prompt, assets, per-model metrics). Progressive: without JS
+ * all panels are rendered and visible in sequence.
+ */
+import { metricDefinitions, formatMetric, type BenchmarkDataset, type ModelId } from '@data/benchmark';
+import { capabilityById } from '@data/capabilities';
+
+interface Props {
+  data: BenchmarkDataset;
+  class?: string;
+}
+const { data, class: className } = Astro.props;
+const modelIds = Object.keys(data.models) as ModelId[];
+const shown = metricDefinitions.filter((d) =>
+  ['finalAnswerAgreement', 'groundTruthAgreement', 'mcpCalls', 'toolFailures', 'latencyMs', 'gatewayCostUsd'].includes(d.key),
+);
+---
+
+<div class:list={['explorer frame', className]} data-explorer>
+  <div class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> scenario explorer</span>
+    <span class="label label--2xs">{data.scenarios.length} scenarios · identical prompts &amp; assets</span>
+  </div>
+
+  <div class="explorer__body">
+    <div class="explorer__tabs" role="tablist" aria-label="Scenarios" aria-orientation="vertical">
+      {data.scenarios.map((s, i) => {
+        const cap = capabilityById(s.capability);
+        return (
+          <button
+            class="explorer__tab"
+            role="tab"
+            type="button"
+            id={`tab-${s.id}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            aria-controls={`panel-${s.id}`}
+            tabindex={i === 0 ? 0 : -1}
+            style={`--accent:${cap?.accent ?? 'var(--energy-500)'}`}
+          >
+            <span class="explorer__tab-index label">{s.id}</span>
+            <span class="explorer__tab-name">{s.name}</span>
+            <span class="explorer__tab-cap label label--2xs">{cap?.glyph} · {cap?.name}</span>
+          </button>
+        );
+      })}
+    </div>
+
+    <div class="explorer__panels">
+      {data.scenarios.map((s, i) => (
+        <section
+          class="explorer__panel"
+          role="tabpanel"
+          id={`panel-${s.id}`}
+          aria-labelledby={`tab-${s.id}`}
+          hidden={i !== 0}
+        >
+          <div class="explorer__prompt">
+            <span class="label">prompt</span>
+            <p class="explorer__prompt-text">“{s.prompt}”</p>
+            <span class="label">assets</span>
+            <p class="mono explorer__assets">{s.assets.join('  ')}</p>
+          </div>
+          <table class="explorer__table">
+            <thead>
+              <tr>
+                <th scope="col" class="label">metric</th>
+                {modelIds.map((m) => <th scope="col" class="label" style={`--series: var(${data.models[m].seriesVar})`}><span class="explorer__swatch" aria-hidden="true"></span>{data.models[m].short}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((def) => (
+                <tr>
+                  <th scope="row">{def.label}</th>
+                  {modelIds.map((m) => {
+                    const v = s.runs[m].metrics[def.key];
+                    return v === null ? <td><span class="explorer__skel skeleton" aria-label="Not yet measured"></span></td> : <td class="num mono">{formatMetric(def, v)}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ))}
+    </div>
+  </div>
+</div>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-explorer]')) {
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const panels = Array.from(root.querySelectorAll<HTMLElement>('[role="tabpanel"]'));
+    const select = (i: number, focus = true) => {
+      tabs.forEach((t, j) => {
+        const on = i === j;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+        (panels[j] as HTMLElement).hidden = !on;
+      });
+      if (focus) tabs[i]?.focus();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(i, false));
+      t.addEventListener('keydown', (e) => {
+        const n = tabs.length;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); select((i + 1) % n); }
+        if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); select((i - 1 + n) % n); }
+        if (e.key === 'Home') { e.preventDefault(); select(0); }
+        if (e.key === 'End') { e.preventDefault(); select(n - 1); }
+      });
+    });
+  }
+</script>
+
+<style>
+  .explorer { }
+  .explorer__body { display: grid; grid-template-columns: 16rem 1fr; }
+  .explorer__tabs { display: grid; align-content: start; border-right: 1px solid var(--line); }
+  .explorer__tab {
+    display: grid;
+    gap: 0.15rem;
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--line);
+    border-left: 2px solid transparent;
+    color: var(--fg-1);
+    transition: background var(--dur-fast), border-color var(--dur-fast);
+  }
+  .explorer__tab:hover { background: var(--bg-2); }
+  .explorer__tab[aria-selected='true'] { border-left-color: var(--accent); background: var(--bg-1); color: var(--fg-0); }
+  .explorer__tab-name { font-family: var(--font-display); font-weight: 500; font-size: var(--text-base); }
+  .explorer__tab-cap { color: var(--fg-3); }
+  .explorer__tab[aria-selected='true'] .explorer__tab-cap { color: var(--accent); }
+
+  .explorer__panel { display: grid; gap: var(--space-5); padding: var(--space-5) var(--space-4); }
+  .explorer__prompt { display: grid; gap: var(--space-2); }
+  .explorer__prompt-text { font-size: var(--text-md); color: var(--fg-0); margin-bottom: var(--space-2); }
+  .explorer__assets { font-size: var(--text-sm); color: var(--fg-1); }
+  .explorer__table { width: 100%; font-size: var(--text-sm); }
+  .explorer__table th, .explorer__table td { text-align: left; padding: var(--space-2) var(--space-3) var(--space-2) 0; border-bottom: 1px solid var(--line); }
+  .explorer__table tbody th { color: var(--fg-1); font-weight: 400; }
+  .explorer__table td { color: var(--fg-0); }
+  .explorer__swatch { display: inline-block; width: 12px; height: 3px; background: var(--series); margin-right: 0.5em; vertical-align: middle; }
+  .explorer__skel { display: block; width: 4.5rem; height: 1rem; min-height: 0; }
+
+  html:not(.js) .explorer__panel[hidden] { display: grid; }
+
+  @media (max-width: 899px) {
+    .explorer__body { grid-template-columns: 1fr; }
+    .explorer__tabs { grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); border-right: 0; border-bottom: 1px solid var(--line); }
+    .explorer__tab { border-left: 0; border-bottom: 2px solid transparent; border-right: 1px solid var(--line); }
+    .explorer__tab[aria-selected='true'] { border-bottom-color: var(--accent); }
+  }
+</style>

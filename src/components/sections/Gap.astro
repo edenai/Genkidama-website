@@ -1,0 +1,95 @@
+---
+import Marker from '@/components/visual/Marker.astro';
+import { capabilities } from '@data/capabilities';
+
+type Cell = 'native' | 'absent' | 'mcp';
+const cell = (native: boolean, viaMcp: boolean): Cell => (native ? 'native' : viaMcp ? 'mcp' : 'absent');
+const legend: Record<Cell, string> = { native: 'native', absent: 'out of reach', mcp: 'via mcp specialist' };
+---
+
+<section class="section gap" id="gap" aria-labelledby="gap-title">
+  <div class="container">
+    <div class="section__head">
+      <Marker index="02" title="The gap" />
+      <span class="label label--2xs">{capabilities.length} capabilities · 3 configurations</span>
+    </div>
+
+    <div class="grid">
+      <div style="grid-column: 1 / span 4" data-reveal>
+        <h2 id="gap-title" class="display display--lg">Where the reach ends.</h2>
+        <p class="prose" style="margin-top: var(--space-4)">
+          The same catalogue of capabilities, seen from three positions: a text-only model, a
+          natively multimodal model, and a text-only model with Eden AI's MCP server in reach.
+          Placeholder framing.
+        </p>
+        <dl class="gap__legend">
+          {(Object.keys(legend) as Cell[]).map((k) => (
+            <div><dt><span class:list={['gap__mark', `gap__mark--${k}`]} aria-hidden="true"></span></dt><dd class="label">{legend[k]}</dd></div>
+          ))}
+        </dl>
+      </div>
+
+      <div class="gap__matrix frame" style="grid-column: 5 / span 8" data-reveal data-reveal-delay="0.1">
+        <table class="gap__table">
+          <caption class="visually-hidden">Capability reach by model configuration</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="label">capability</th>
+              <th scope="col" class="label">text-only model</th>
+              <th scope="col" class="label">multimodal model</th>
+              <th scope="col" class="label label--energy">text-only + mcp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {capabilities.map((c) => {
+              const cells: Cell[] = [
+                cell(c.native.textModel, false),
+                cell(c.native.multimodalModel, false),
+                cell(c.native.textModel, true),
+              ];
+              return (
+                <tr style={`--accent:${c.accent}`}>
+                  <th scope="row">
+                    <span class="gap__glyph mono">{c.glyph}</span>
+                    <span class="gap__name">{c.name}</span>
+                    <span class="gap__tool mono">{c.tool}</span>
+                  </th>
+                  {cells.map((k) => (
+                    <td><span class:list={['gap__mark', `gap__mark--${k}`]} role="img" aria-label={legend[k]}></span></td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .gap__legend { display: grid; gap: var(--space-2); margin-top: var(--space-6); }
+  .gap__legend div { display: flex; align-items: center; gap: var(--space-3); }
+  .gap__legend dd { margin: 0; }
+
+  .gap__table { width: 100%; }
+  .gap__table th, .gap__table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); text-align: left; }
+  .gap__table thead th { border-bottom-color: var(--line-strong); }
+  .gap__table tbody tr:last-child th, .gap__table tbody tr:last-child td { border-bottom: 0; }
+  .gap__table tbody th { display: grid; grid-template-columns: 2.4rem 1fr; column-gap: var(--space-2); font-weight: 500; }
+  .gap__glyph { font-size: var(--text-xs); color: var(--accent); letter-spacing: 0.12em; align-self: center; }
+  .gap__name { color: var(--fg-0); }
+  .gap__tool { grid-column: 2; font-size: var(--text-2xs); color: var(--fg-3); }
+  .gap__table td { text-align: center; }
+
+  .gap__mark { display: inline-block; width: 12px; height: 12px; }
+  .gap__mark--native { background: var(--fg-1); }
+  .gap__mark--absent { border: 1px solid var(--fg-3); }
+  .gap__mark--mcp { border: 1px solid var(--energy-500); background: radial-gradient(circle, var(--energy-500) 0 2.5px, transparent 3px); box-shadow: var(--glow-sm); }
+
+  @media (max-width: 640px) {
+    .gap__tool { display: none; }
+    .gap__table th, .gap__table td { padding: var(--space-2); }
+    .gap__table thead th { font-size: var(--text-2xs); }
+  }
+</style>

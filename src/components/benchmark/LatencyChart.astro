@@ -1,0 +1,174 @@
+---
+/**
+ * Latency per scenario, two series (Gemini native / DeepSeek + MCP), each bar
+ * stacked as model latency (solid) + tool latency (hatched). One axis. Hover
+ * tooltips per bar. With no data, bars are skeleton hatches at a fixed width
+ * and the axis carries no numbers — nothing is implied.
+ *
+ * Series colors: --series-native (#b8783a) and --series-mcp (#0a9bb8),
+ * defined in tokens.css and validated for CVD separation on the dark surface.
+ */
+import type { BenchmarkDataset, ModelId } from '@data/benchmark';
+
+interface Props {
+  data: BenchmarkDataset;
+  class?: string;
+}
+const { data, class: className } = Astro.props;
+const modelIds = Object.keys(data.models) as ModelId[];
+const live = data.status === 'live';
+
+const rowH = 46;
+const barH = 12;
+const gap = 2;
+const labelW = 150;
+const W = 720;
+const plotW = W - labelW - 24;
+const H = data.scenarios.length * rowH + 40;
+
+const maxLatency = live
+  ? Math.max(1, ...data.scenarios.flatMap((s) => modelIds.map((m) => s.runs[m].metrics.latencyMs ?? 0)))
+  : 1;
+const x = (ms: number) => (ms / maxLatency) * plotW;
+const ticks = [0, 0.25, 0.5, 0.75, 1];
+---
+
+<figure class:list={['lat frame', className]}>
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> latency by scenario</span>
+    <span class="lat__legend" aria-hidden="true">
+      {modelIds.map((id) => (
+        <span class="lat__key" style={`--series: var(${data.models[id].seriesVar})`}>
+          <span class="lat__swatch"></span>{data.models[id].short}
+        </span>
+      ))}
+      <span class="lat__key lat__key--muted"><span class="lat__swatch lat__swatch--hatch"></span>tool share</span>
+    </span>
+  </figcaption>
+
+  <svg class="lat__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="lat-title lat-desc">
+    <title id="lat-title">End-to-end latency per scenario</title>
+    <desc id="lat-desc">
+      {live ? 'Stacked horizontal bars of model and tool latency for each scenario and model.' : 'Placeholder chart; no measurements yet.'}
+    </desc>
+    <defs>
+      <pattern id="lat-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="6" height="6" fill="var(--bg-0)" />
+        <line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="2" />
+      </pattern>
+      <pattern id="lat-skel" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+        <line x1="0" y1="0" x2="0" y2="6" stroke="var(--fg-3)" stroke-width="1" opacity="0.6" />
+      </pattern>
+    </defs>
+
+    <!-- grid -->
+    {ticks.map((t) => (
+      <line class="lat__grid" x1={labelW + t * plotW} x2={labelW + t * plotW} y1="8" y2={H - 28} />
+    ))}
+    {ticks.map((t) => (
+      <text class="lat__tick" x={labelW + t * plotW} y={H - 10}>
+        {live ? `${Math.round(t * maxLatency).toLocaleString('en-US')}` : '·'}
+      </text>
+    ))}
+    <text class="lat__axis" x={W - 12} y={H - 10}>{live ? 'ms' : 'ms (awaiting data)'}</text>
+
+    {data.scenarios.map((s, i) => {
+      const y0 = 16 + i * rowH;
+      return (
+        <g class="lat__row">
+          <text class="lat__label" x={labelW - 12} y={y0 + rowH / 2 - 2}>{s.name}</text>
+          <text class="lat__sub" x={labelW - 12} y={y0 + rowH / 2 + 11}>{s.id} · {s.capability}</text>
+          {modelIds.map((m, j) => {
+            const run = s.runs[m];
+            const y = y0 + 6 + j * (barH + gap + 2);
+            const model = run.metrics.modelLatencyMs;
+            const tool = run.metrics.toolLatencyMs;
+            const total = run.metrics.latencyMs;
+            const series = `var(${data.models[m].seriesVar})`;
+            if (!live || total === null) {
+              return (
+                <rect class="lat__bar lat__bar--skel" x={labelW} y={y} width={plotW * 0.45} height={barH} fill="url(#lat-skel)" />
+              );
+            }
+            const wModel = x(model ?? total - (tool ?? 0));
+            const wTool = x(tool ?? 0);
+            return (
+              <g class="lat__bar" style={`color:${series}`} tabindex="0" data-tip={`${data.models[m].name} · ${s.name}: ${Math.round(total)} ms (model ${Math.round(model ?? 0)}, tools ${Math.round(tool ?? 0)})`}>
+                <rect x={labelW} y={y} width={Math.max(0, wModel - gap)} height={barH} fill={series} />
+                {wTool > 0 && <rect x={labelW + wModel} y={y} width={wTool} height={barH} fill="url(#lat-hatch)" />}
+                <rect class="lat__hit" x={labelW} y={y - 3} width={plotW} height={barH + 6} />
+              </g>
+            );
+          })}
+        </g>
+      );
+    })}
+  </svg>
+  {!live && (
+    <p class="lat__note label label--2xs">
+      Placeholder geometry. Bars carry no values until the benchmark dataset is connected.
+    </p>
+  )}
+  <div class="lat__tip label" role="status" aria-live="polite" data-lat-tip hidden></div>
+</figure>
+
+<script>
+  // Per-bar tooltip; positioned beside the pointer, hidden on leave.
+  for (const fig of document.querySelectorAll<HTMLElement>('.lat')) {
+    const tip = fig.querySelector<HTMLElement>('[data-lat-tip]');
+    if (!tip) continue;
+    const show = (el: HTMLElement, x: number, y: number) => {
+      tip.textContent = el.dataset.tip ?? '';
+      tip.hidden = false;
+      const r = fig.getBoundingClientRect();
+      tip.style.transform = `translate(${x - r.left + 12}px, ${y - r.top - 8}px)`;
+    };
+    fig.addEventListener('pointermove', (e) => {
+      const bar = (e.target as HTMLElement).closest<HTMLElement>('[data-tip]');
+      if (bar) show(bar, e.clientX, e.clientY);
+      else tip.hidden = true;
+    });
+    fig.addEventListener('pointerleave', () => (tip.hidden = true));
+    fig.addEventListener('focusin', (e) => {
+      const bar = (e.target as HTMLElement).closest<HTMLElement>('[data-tip]');
+      if (bar) {
+        const r = bar.getBoundingClientRect();
+        show(bar, r.right, r.top);
+      }
+    });
+    fig.addEventListener('focusout', () => (tip.hidden = true));
+  }
+</script>
+
+<style>
+  .lat { position: relative; }
+  .lat__svg { width: 100%; height: auto; padding: var(--space-4) var(--space-4) var(--space-2); }
+  .lat__legend { display: inline-flex; gap: var(--space-4); }
+  .lat__key { display: inline-flex; align-items: center; gap: 0.5em; font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-1); }
+  .lat__key--muted { color: var(--fg-2); }
+  .lat__swatch { width: 14px; height: 8px; background: var(--series); }
+  .lat__swatch--hatch { background: repeating-linear-gradient(45deg, var(--fg-2) 0 1px, transparent 1px 4px); }
+  .lat__grid { stroke: var(--line); stroke-width: 1; }
+  .lat__tick { font-family: var(--font-mono); font-size: 10px; fill: var(--fg-3); text-anchor: middle; }
+  .lat__axis { font-family: var(--font-mono); font-size: 10px; fill: var(--fg-2); text-anchor: end; letter-spacing: 0.1em; }
+  .lat__label { font-family: var(--font-body); font-size: 12px; fill: var(--fg-0); text-anchor: end; }
+  .lat__sub { font-family: var(--font-mono); font-size: 9.5px; fill: var(--fg-3); text-anchor: end; letter-spacing: 0.08em; }
+  .lat__bar--skel { stroke: var(--fg-3); stroke-dasharray: 2 3; }
+  .lat__hit { fill: transparent; }
+  .lat__bar:hover rect:not(.lat__hit), .lat__bar:focus-visible rect:not(.lat__hit) { filter: brightness(1.2); }
+  .lat__bar:focus-visible { outline: none; }
+  .lat__bar:focus-visible .lat__hit { stroke: var(--energy-500); stroke-width: 1; }
+  .lat__note { padding: 0 var(--space-4) var(--space-4); color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .lat__tip {
+    position: absolute;
+    left: 0; top: 0;
+    pointer-events: none;
+    padding: 0.35rem 0.6rem;
+    background: var(--bg-0);
+    border: 1px solid var(--line-strong);
+    color: var(--fg-0);
+    text-transform: none;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+</style>

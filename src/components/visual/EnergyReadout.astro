@@ -1,0 +1,49 @@
+---
+/** Live instrument readout mirroring scene state. Decorative; aria-hidden. */
+---
+
+<div class="readout" aria-hidden="true">
+  <div class="readout__row">
+    <span class="readout__key">energy</span>
+    <span class="readout__val num" data-readout="energy">0.18</span>
+  </div>
+  <div class="readout__row">
+    <span class="readout__key">phase</span>
+    <span class="readout__val" data-readout="phase">ISOLATION</span>
+  </div>
+  <div class="readout__row">
+    <span class="readout__key">streams</span>
+    <span class="readout__val num" data-readout="streams">0.0</span>
+  </div>
+  <div class="readout__row">
+    <span class="readout__key">nodes</span>
+    <span class="readout__val num">08</span>
+  </div>
+  <div class="readout__row readout__row--dim">
+    <span class="readout__key"><span data-readout="renderer">--</span></span>
+    <span class="readout__val num"><span data-readout="fps">--</span> fps</span>
+  </div>
+</div>
+
+<style>
+  .readout {
+    display: grid;
+    gap: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--fg-2);
+    min-width: 11rem;
+  }
+  .readout__row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.3rem;
+  }
+  .readout__row--dim { border-bottom: 0; color: var(--fg-3); }
+  .readout__val { color: var(--fg-0); }
+  .readout__row--dim .readout__val { color: var(--fg-3); }
+</style>

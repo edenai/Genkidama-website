@@ -1,0 +1,16 @@
+---
+/** "01 / THE IDEA" — the editorial section marker. */
+interface Props {
+  index: string;
+  title: string;
+  as?: 'span' | 'div';
+  class?: string;
+}
+const { index, title, as: Tag = 'span', class: className } = Astro.props;
+---
+
+<Tag class:list={['marker', className]}>
+  <span class="marker__index">{index}</span>
+  <span class="marker__sep" aria-hidden="true">/</span>
+  <span class="marker__title">{title}</span>
+</Tag>

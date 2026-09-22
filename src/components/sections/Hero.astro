@@ -1,0 +1,94 @@
+---
+import HeroWordmark from '@/components/visual/HeroWordmark.astro';
+import EnergyReadout from '@/components/visual/EnergyReadout.astro';
+import ScrollCue from '@/components/visual/ScrollCue.astro';
+---
+
+<section class="hero" id="top" data-hero aria-labelledby="hero-title">
+  <div class="hero__corner hero__corner--tl label">
+    <span>Eden AI</span>
+    <span class="muted">/ research</span>
+  </div>
+  <div class="hero__corner hero__corner--tr label">
+    <span class="muted">Capability composition</span>
+    <span>v0.1</span>
+  </div>
+
+  <div class="hero__inner">
+    <div id="hero-title">
+      <HeroWordmark />
+    </div>
+    <p class="hero__tagline display display--sm on-stage" data-reveal>
+      Give any model access to any capability.
+    </p>
+    <p class="hero__sub label on-stage" data-reveal>
+      <span class="energy">a text model</span>
+      <span class="hero__arrow" aria-hidden="true">→</span>
+      <span>mcp</span>
+      <span class="hero__arrow" aria-hidden="true">→</span>
+      <span>every specialist tool</span>
+      <span class="hero__arrow" aria-hidden="true">→</span>
+      <span class="ember">result</span>
+    </p>
+  </div>
+
+  <div class="hero__corner hero__corner--bl" data-reveal>
+    <EnergyReadout />
+  </div>
+  <div class="hero__corner hero__corner--br" data-reveal>
+    <ScrollCue />
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    z-index: var(--z-content);
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: var(--space-10) var(--gutter);
+  }
+  .hero__inner {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-5);
+    text-align: center;
+    /* Push the block down so the core (viewport center) sits on the wordmark,
+       burning through the hollow letters, with the tagline clear below it. */
+    margin-top: clamp(5rem, 14vh, 9rem);
+  }
+  .hero__tagline {
+    color: var(--fg-0);
+    max-width: 26ch;
+    margin-top: var(--space-4);
+  }
+  .hero__sub {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6em;
+    color: var(--fg-1);
+  }
+  .hero__arrow { color: var(--fg-3); }
+
+  .hero__corner {
+    position: absolute;
+    display: flex;
+    gap: 0.6em;
+  }
+  .hero__corner--tl { top: calc(var(--space-6) + 2.5rem); left: var(--gutter); }
+  .hero__corner--tr { top: calc(var(--space-6) + 2.5rem); right: var(--gutter); }
+  .hero__corner--bl { bottom: var(--space-6); left: var(--gutter); }
+  .hero__corner--br { bottom: var(--space-6); right: var(--gutter); }
+
+  @media (min-width: 900px) {
+    .hero__corner--tl, .hero__corner--bl { left: calc(var(--gutter) + var(--rail)); }
+  }
+  @media (max-width: 640px) {
+    .hero__corner--tr { display: none; }
+    .hero__corner--bl { display: none; }
+    .hero__corner--br { left: var(--gutter); right: auto; }
+    .hero__sub { font-size: var(--text-2xs); }
+  }
+</style>

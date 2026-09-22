@@ -1,0 +1,147 @@
+---
+/**
+ * The scroll-driven story. Six phases; each block owns one sixth of the
+ * scene's progress. Copy is placeholder for the content pass — the animation
+ * carries the explanation; the text confirms it.
+ */
+import { PHASES } from '@config/animation';
+
+const phases = [
+  {
+    id: PHASES[0],
+    label: 'Isolation',
+    title: 'A model, alone.',
+    body: 'A text model is superb at text. Images, audio, scanned pages and the live web sit outside its native reach.',
+    signals: [['native', 'text'], ['reach', '0 / 8']],
+    side: 'left',
+  },
+  {
+    id: PHASES[1],
+    label: 'Capability gap',
+    title: 'The capabilities exist. Just not here.',
+    body: 'OCR, vision, speech, web access: each is a solved problem, running somewhere else. The model cannot touch any of it.',
+    signals: [['specialists', '8'], ['distance', '∞']],
+    side: 'right',
+  },
+  {
+    id: PHASES[2],
+    label: 'MCP',
+    title: 'A routing layer between them.',
+    body: 'Eden AI’s MCP server sits between the model and every specialist. One protocol, many tools. The model only needs to know how to ask.',
+    signals: [['protocol', 'mcp'], ['tools exposed', '8']],
+    side: 'left',
+  },
+  {
+    id: PHASES[3],
+    label: 'Composition',
+    title: 'One call. Out and back.',
+    body: 'The model requests a capability. The request travels through MCP to a specialist; the result travels back as text the model already understands.',
+    signals: [['path', 'model → mcp → tool → model'], ['return', 'result']],
+    side: 'right',
+  },
+  {
+    id: PHASES[4],
+    label: 'Accumulation',
+    title: 'Every capability feeds the core.',
+    body: 'Each tool the model can call adds energy. A cheaper, smaller model starts doing work that used to require something far larger.',
+    signals: [['streams', '8 / 8'], ['reach', '8 / 8']],
+    side: 'left',
+  },
+  {
+    id: PHASES[5],
+    label: 'Genkidama',
+    title: 'One system. Many sources.',
+    body: 'Gathered from many specialists, the composite is more capable than any single model in it. That gathering is the whole idea.',
+    signals: [['state', 'composite'], ['energy', 'max']],
+    side: 'right',
+  },
+];
+---
+
+<section class="story" data-story aria-labelledby="story-title">
+  <h2 id="story-title" class="visually-hidden">How Genkidama works, in six phases</h2>
+
+  {phases.map((ph, i) => (
+    <article
+      class:list={['phase', `phase--${ph.side}`, { 'phase--last': i === phases.length - 1 }]}
+      id={`phase-${ph.id}`}
+      data-phase={i}
+    >
+      <div class="phase__inner on-stage">
+        <span class="phase__marker marker">
+          <span class="marker__index">phase 0{i + 1}</span>
+          <span class="marker__sep" aria-hidden="true">/</span>
+          <span>{ph.label}</span>
+        </span>
+        <h3 class="phase__title display display--lg">{ph.title}</h3>
+        <p class="phase__body prose">{ph.body}</p>
+        <dl class="phase__signals">
+          {ph.signals.map(([k, v]) => (
+            <div class="phase__signal">
+              <dt class="label">{k}</dt>
+              <dd class="label label--strong">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </article>
+  ))}
+</section>
+
+<style>
+  .story {
+    position: relative;
+    z-index: var(--z-content);
+  }
+  .phase {
+    min-height: 100vh;
+    min-height: 100svh;
+    display: grid;
+    align-items: center;
+    padding-inline: var(--gutter);
+  }
+  .phase--last { min-height: 140vh; align-items: start; padding-top: 30vh; }
+
+  .phase__inner {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 30rem;
+  }
+  /* Asymmetric: text sits away from the core so the system stays visible. */
+  .phase--left .phase__inner { justify-self: start; }
+  .phase--right .phase__inner { justify-self: end; text-align: left; }
+  @media (min-width: 900px) {
+    .phase--left .phase__inner { margin-left: calc(var(--rail) + var(--space-4)); }
+    .phase--right .phase__inner { margin-right: var(--space-6); }
+  }
+
+  .phase__title { color: var(--fg-0); }
+  .phase__body { color: var(--fg-1); }
+
+  .phase__signals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-6);
+    margin: var(--space-2) 0 0;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--line);
+  }
+  .phase__signal { display: flex; gap: 0.8em; }
+  .phase__signal dd { margin: 0; }
+
+  /* Non-JS / reduced-motion: everything visible. */
+  html.js:not(.reduced-motion) .phase__title,
+  html.js:not(.reduced-motion) .phase__body,
+  html.js:not(.reduced-motion) .phase__signals,
+  html.js:not(.reduced-motion) .phase__marker { opacity: 0; }
+
+  @media (max-width: 899px) {
+    .phase { align-items: end; padding-bottom: var(--space-8); }
+    .phase--right .phase__inner { justify-self: start; }
+    .phase__inner {
+      padding: var(--space-4);
+      margin-inline: calc(var(--gutter) * -0.5);
+      background: linear-gradient(to top, rgba(5, 7, 8, 0.85), rgba(5, 7, 8, 0.5));
+    }
+  }
+</style>

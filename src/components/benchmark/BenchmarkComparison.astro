@@ -1,0 +1,92 @@
+---
+/**
+ * Head-to-head panel: Gemini Pro (native) vs DeepSeek Pro (+ MCP) across the
+ * scenario-level metrics. Skeleton cells until the dataset is live.
+ */
+import { metricDefinitions, formatMetric, type BenchmarkDataset, type ModelId } from '@data/benchmark';
+
+interface Props {
+  data: BenchmarkDataset;
+  class?: string;
+}
+const { data, class: className } = Astro.props;
+const modelIds = Object.keys(data.models) as ModelId[];
+const placeholder = data.status !== 'live';
+
+/** Aggregate across scenarios (mean); null when any scenario is unmeasured. */
+const aggregate = (model: ModelId, key: (typeof metricDefinitions)[number]['key']) => {
+  const vals = data.scenarios.map((s) => s.runs[model].metrics[key]);
+  if (vals.some((v) => v === null)) return null;
+  const nums = vals as number[];
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+};
+---
+
+<figure class:list={['bench frame', className]}>
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> scenario-level comparison</span>
+    {placeholder ? (
+      <span class="placeholder-badge"><span class="dot dot--ember" aria-hidden="true"></span> placeholder · no results yet</span>
+    ) : (
+      <span class="label label--2xs">v{data.version}</span>
+    )}
+  </figcaption>
+
+  <table class="bench__table">
+    <thead>
+      <tr>
+        <th scope="col" class="label">metric</th>
+        {modelIds.map((id) => (
+          <th scope="col" style={`--series: var(${data.models[id].seriesVar})`}>
+            <div class="bench__model">
+              <span class="bench__swatch" aria-hidden="true"></span>
+              <span class="bench__model-name">{data.models[id].name}</span>
+              <span class="label label--2xs">{data.models[id].usesMcp ? 'text + mcp specialists' : 'native multimodal'}</span>
+            </div>
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {metricDefinitions.map((def) => (
+        <tr>
+          <th scope="row">
+            <span class="bench__metric">{def.label}</span>
+            <span class="bench__desc label label--2xs">{def.description}</span>
+          </th>
+          {modelIds.map((id) => {
+            const v = aggregate(id, def.key);
+            return v === null ? (
+              <td class="bench__cell bench__cell--empty"><span class="bench__skel skeleton" aria-label="Not yet measured"></span></td>
+            ) : (
+              <td class="bench__cell num">{formatMetric(def, v)}</td>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</figure>
+
+<style>
+  .bench { overflow-x: auto; }
+  .bench__table { width: 100%; font-size: var(--text-sm); }
+  .bench__table th, .bench__table td {
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .bench__table thead th { border-bottom-color: var(--line-strong); }
+  .bench__model { display: grid; gap: 0.2rem; }
+  .bench__swatch { width: 18px; height: 3px; background: var(--series); }
+  .bench__model-name { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em; color: var(--fg-0); }
+  .bench__metric { display: block; color: var(--fg-0); font-weight: 500; }
+  .bench__desc { display: block; color: var(--fg-3); text-transform: none; letter-spacing: 0.03em; margin-top: 0.15rem; }
+  .bench__cell { font-family: var(--font-mono); color: var(--fg-0); width: 22%; }
+  .bench__skel { display: block; height: 1.1rem; min-height: 0; width: 5.5rem; }
+  @media (max-width: 640px) {
+    .bench__desc { display: none; }
+    .bench__table th, .bench__table td { padding: var(--space-2) var(--space-3); }
+  }
+</style>

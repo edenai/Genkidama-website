@@ -1,0 +1,68 @@
+---
+import { Code } from 'astro:components';
+import type { BundledLanguage } from 'shiki';
+
+/**
+ * Code as a specimen: hairline frame, corner ticks, a bar with the file name
+ * and a status glyph, gutter line numbers. Syntax colors come from the
+ * energy palette via Shiki's css-variables theme.
+ */
+interface Props {
+  code: string;
+  lang?: BundledLanguage | 'text';
+  title?: string;
+  /** Optional right-hand note in the bar, e.g. "request" */
+  note?: string;
+  class?: string;
+}
+const { code, lang = 'json', title = 'snippet', note, class: className } = Astro.props;
+const lineCount = code.trimEnd().split('\n').length;
+---
+
+<figure class:list={['code frame', className]}>
+  <figcaption class="frame__bar">
+    <span class="code__title label">
+      <span class="dot dot--energy" aria-hidden="true"></span>
+      {title}
+    </span>
+    <span class="label label--2xs">{note ?? lang}</span>
+  </figcaption>
+  <div class="code__body">
+    <ol class="code__gutter" aria-hidden="true">
+      {Array.from({ length: lineCount }, (_, i) => <li>{String(i + 1).padStart(2, '0')}</li>)}
+    </ol>
+    <Code code={code.trimEnd()} lang={lang as BundledLanguage} theme="css-variables" />
+  </div>
+</figure>
+
+<style>
+  .code { overflow: hidden; }
+  .code__title { display: inline-flex; align-items: center; gap: 0.6em; color: var(--fg-1); }
+  .code__body {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+  .code__gutter {
+    padding: var(--space-4) var(--space-3);
+    border-right: 1px solid var(--line);
+    color: var(--fg-3);
+    text-align: right;
+    user-select: none;
+    font-size: var(--text-xs);
+    line-height: calc(1.6 * var(--text-sm) / var(--text-xs));
+  }
+  .code__body :global(pre) {
+    margin: 0;
+    padding: var(--space-4);
+    background: transparent !important;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    tab-size: 2;
+  }
+  .code__body :global(code) { font-family: inherit; }
+</style>

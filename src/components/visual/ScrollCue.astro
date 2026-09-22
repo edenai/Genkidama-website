@@ -1,0 +1,43 @@
+---
+interface Props { label?: string }
+const { label = 'Scroll to gather' } = Astro.props;
+---
+
+<a class="cue" href="#phase-isolation" aria-label={label}>
+  <span class="cue__label label">{label}</span>
+  <span class="cue__track" aria-hidden="true"><span class="cue__packet"></span></span>
+</a>
+
+<style>
+  .cue {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    color: var(--fg-2);
+  }
+  .cue:hover .cue__label { color: var(--fg-0); }
+  .cue__track {
+    position: relative;
+    width: 1px;
+    height: 64px;
+    background: var(--line-strong);
+    overflow: hidden;
+  }
+  .cue__packet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 16px;
+    background: var(--energy-500);
+    box-shadow: var(--glow-sm);
+    animation: cue-travel 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  @keyframes cue-travel {
+    from { transform: translateY(-16px); }
+    to { transform: translateY(64px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cue__packet { animation: none; top: 24px; }
+  }
+</style>

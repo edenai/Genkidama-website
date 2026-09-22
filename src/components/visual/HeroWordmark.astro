@@ -1,0 +1,47 @@
+---
+/**
+ * GENKIDAMA as part of the visual system: the three center letters are
+ * hollow so the core burns through them; the outer letters are solid. The
+ * letters converge on load (see animations/scroll/hero.ts).
+ */
+const word = 'GENKIDAMA';
+const letters = word.split('');
+const hollow = new Set([3, 4, 5]); // K I D
+---
+
+<h1 class="wordmark" aria-label={word}>
+  {letters.map((l, i) => (
+    <span class:list={['wordmark__letter', { 'wordmark__letter--hollow': hollow.has(i) }]} aria-hidden="true">{l}</span>
+  ))}
+</h1>
+
+<style>
+  .wordmark {
+    display: flex;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-wordmark);
+    line-height: 0.95;
+    letter-spacing: 0;
+    color: var(--fg-0);
+    margin: 0;
+    /* Trim optical side bearings created by tracking */
+    padding-left: 0.14em;
+  }
+  .wordmark__letter {
+    display: inline-block;
+    margin-right: var(--tracking-wordmark);
+    will-change: transform, opacity;
+  }
+  .wordmark__letter--hollow {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--fg-0);
+    paint-order: stroke fill;
+  }
+  @media (max-width: 640px) {
+    .wordmark { font-size: clamp(2.2rem, 0.6rem + 8.4vw, 4rem); padding-left: 0.08em; }
+    .wordmark__letter { margin-right: 0.08em; }
+    .wordmark__letter--hollow { -webkit-text-stroke-width: 1px; }
+  }
+</style>

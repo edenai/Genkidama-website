@@ -1,0 +1,189 @@
+---
+/**
+ * A tool call as an energy transfer. Vertical bus with stations; a packet
+ * travels down (request, cyan) and back up (result, ember). Replayable.
+ * The list itself is the accessible content; the packet is decoration.
+ */
+export interface TraceStep {
+  kind: 'model' | 'mcp' | 'tool' | 'result';
+  label: string;
+  detail?: string;
+}
+interface Props {
+  steps?: TraceStep[];
+  title?: string;
+  class?: string;
+}
+const defaultSteps: TraceStep[] = [
+  { kind: 'model', label: 'MODEL', detail: 'text-only · emits tool_call' },
+  { kind: 'mcp', label: 'MCP', detail: 'eden ai gateway · routes' },
+  { kind: 'tool', label: 'OCR', detail: 'eden.ocr.extract · 412 ms' },
+  { kind: 'result', label: 'RESULT', detail: 'text · 1.2 kB' },
+  { kind: 'model', label: 'MODEL', detail: 'continues with new context' },
+];
+const { steps = defaultSteps, title = 'tool-call trace', class: className } = Astro.props;
+---
+
+<figure class:list={['trace frame', className]} data-trace>
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> {title}</span>
+    <button class="trace__replay label" type="button" data-trace-replay>replay</button>
+  </figcaption>
+
+  <div class="trace__body">
+    <div class="trace__bus" aria-hidden="true">
+      <span class="trace__packet trace__packet--req"></span>
+      <span class="trace__packet trace__packet--res"></span>
+    </div>
+    <ol class="trace__steps">
+      {steps.map((s, i) => (
+        <li class:list={['trace__step', `trace__step--${s.kind}`]} style={`--i:${i}; --n:${steps.length}`}>
+          <span class="trace__station" aria-hidden="true"></span>
+          <span class="trace__label">{s.label}</span>
+          {s.detail && <span class="trace__detail label label--2xs">{s.detail}</span>}
+          {i < steps.length - 1 && (
+            <span class="trace__edge label label--2xs" aria-hidden="true">
+              {s.kind === 'model' && i === 0 ? 'tool_call' : s.kind === 'tool' ? 'result' : '→'}
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  </div>
+</figure>
+
+<script>
+  const traces = document.querySelectorAll<HTMLElement>('[data-trace]');
+  const reduced = document.documentElement.classList.contains('reduced-motion');
+  const play = (el: HTMLElement) => {
+    el.classList.remove('is-playing');
+    // Restart CSS animations.
+    void el.offsetWidth;
+    el.classList.add('is-playing');
+  };
+  for (const t of traces) {
+    t.querySelector('[data-trace-replay]')?.addEventListener('click', () => play(t));
+    if (reduced) {
+      t.classList.add('is-static');
+      continue;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          play(t);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(t);
+  }
+</script>
+
+<style>
+  .trace__replay { color: var(--fg-2); }
+  .trace__replay:hover { color: var(--energy-300); }
+
+  .trace__body {
+    position: relative;
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-4);
+  }
+  .trace__bus {
+    position: relative;
+    justify-self: center;
+    width: 1px;
+    background: var(--line-strong);
+    margin-block: 0.7rem;
+  }
+  .trace__packet {
+    position: absolute;
+    left: -2px;
+    top: 0;
+    width: 5px;
+    height: 18px;
+    opacity: 0;
+  }
+  .trace__packet--req { background: var(--energy-300); box-shadow: var(--glow-sm); }
+  .trace__packet--res { background: var(--ember); box-shadow: var(--glow-ember); }
+
+  .trace__steps { display: grid; gap: var(--space-6); }
+  .trace__step {
+    position: relative;
+    display: grid;
+    gap: 0.2rem;
+    padding-left: var(--space-2);
+  }
+  .trace__station {
+    position: absolute;
+    left: calc(-1 * (var(--space-4) + 12px + 6px));
+    top: 0.55em;
+    width: 11px;
+    height: 11px;
+    border: 1px solid var(--fg-2);
+    background: var(--bg-0);
+    transform: rotate(45deg);
+    transition: border-color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast);
+  }
+  .trace__step--mcp .trace__station { border-color: var(--energy-500); }
+  .trace__step--tool .trace__station { border-radius: 50%; transform: none; }
+  .trace__step--result .trace__station { border-color: var(--ember); }
+
+  .trace__label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: var(--text-md);
+    letter-spacing: 0.06em;
+    color: var(--fg-0);
+  }
+  .trace__step--mcp .trace__label { color: var(--energy-300); }
+  .trace__step--result .trace__label { color: var(--ember); }
+  .trace__detail { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; }
+  .trace__edge {
+    position: absolute;
+    left: var(--space-2);
+    bottom: calc(-1 * var(--space-6) + 0.55rem);
+    color: var(--fg-3);
+    white-space: nowrap;
+  }
+
+  /* Choreography: request travels down the bus and lights each station in
+     turn; the result comes back up in ember and re-lights the model. */
+  .is-playing .trace__packet--req { animation: trace-down 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  .is-playing .trace__packet--res { animation: trace-up 1.6s cubic-bezier(0.4, 0, 0.2, 1) 2.1s forwards; }
+  @keyframes trace-down {
+    0% { opacity: 0; top: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { opacity: 0; top: calc(100% - 18px); }
+  }
+  @keyframes trace-up {
+    0% { opacity: 0; top: calc(100% - 18px); }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { opacity: 0; top: 0; }
+  }
+  .is-playing .trace__step .trace__station {
+    animation: station-charge 0.5s steps(1) forwards;
+    animation-delay: calc(0.15s + var(--i) * 0.36s);
+  }
+  .is-playing .trace__step--result .trace__station,
+  .is-playing .trace__step:last-child .trace__station {
+    animation-name: station-charge-ember;
+    animation-delay: calc(2.3s + (var(--i) - 3) * 0.7s);
+  }
+  @keyframes station-charge {
+    to { background: var(--energy-500); border-color: var(--energy-300); box-shadow: var(--glow-sm); }
+  }
+  @keyframes station-charge-ember {
+    to { background: var(--ember); border-color: var(--ember); box-shadow: var(--glow-ember); }
+  }
+  .is-static .trace__station { background: var(--energy-700); }
+  .is-static .trace__step--result .trace__station { background: var(--ember-deep); }
+
+  @media (max-width: 640px) {
+    .trace__edge { display: none; }
+  }
+</style>

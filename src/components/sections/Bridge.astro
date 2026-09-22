@@ -1,0 +1,42 @@
+---
+import Marker from '@/components/visual/Marker.astro';
+import ArchitectureDiagram from '@/components/technical/ArchitectureDiagram.astro';
+---
+
+<section class="section bridge" id="bridge" aria-labelledby="bridge-title">
+  <div class="container">
+    <div class="section__head">
+      <Marker index="03" title="The bridge" />
+      <span class="label label--2xs">model context protocol</span>
+    </div>
+
+    <div class="grid">
+      <div style="grid-column: 1 / span 12" data-reveal>
+        <ArchitectureDiagram />
+      </div>
+
+      <div style="grid-column: 1 / span 4" data-reveal>
+        <h2 id="bridge-title" class="display display--lg">One protocol between the model and everything it lacks.</h2>
+      </div>
+      <div style="grid-column: 6 / span 6" data-reveal data-reveal-delay="0.1">
+        <p class="prose">
+          MCP gives the model a uniform way to discover tools, call them and receive results as
+          text. Eden AI's server exposes its specialist catalogue behind that one interface, so a
+          model that can only read and write text can still route a scanned page to OCR, a clip
+          to speech recognition or a URL to a web fetcher. Placeholder copy; the MCP details
+          arrive with the content pass.
+        </p>
+        <ul class="bridge__facts">
+          <li><span class="label">discovery</span><span class="mono">tools/list</span></li>
+          <li><span class="label">invocation</span><span class="mono">tools/call</span></li>
+          <li><span class="label">return</span><span class="mono">text · structured</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .bridge__facts { display: grid; gap: var(--space-2); margin-top: var(--space-6); max-width: var(--measure); }
+  .bridge__facts li { display: grid; grid-template-columns: 8rem 1fr; padding: var(--space-2) 0; border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--fg-0); }
+</style>

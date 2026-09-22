@@ -1,0 +1,57 @@
+---
+/**
+ * A measurement, not a KPI tile: label on top, a large tabular number, unit
+ * and a source note. Null values render an honest skeleton.
+ */
+interface Props {
+  label: string;
+  value?: string | number | null;
+  unit?: string;
+  note?: string;
+  accent?: 'none' | 'energy' | 'ember';
+  class?: string;
+}
+const { label, value = null, unit, note, accent = 'none', class: className } = Astro.props;
+const empty = value === null || value === undefined || value === '';
+---
+
+<div class:list={['metric frame', `metric--${accent}`, className]}>
+  <div class="metric__label label">{label}</div>
+  {empty ? (
+    <div class="metric__value metric__value--empty skeleton" aria-label="Not yet measured">
+      <span class="skeleton__tag">awaiting data</span>
+    </div>
+  ) : (
+    <div class="metric__value num">
+      {value}{unit && <span class="metric__unit">{unit}</span>}
+    </div>
+  )}
+  {note && <div class="metric__note label label--2xs">{note}</div>}
+</div>
+
+<style>
+  .metric {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    min-height: 9rem;
+    align-content: space-between;
+  }
+  .metric__value {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: var(--text-xl);
+    line-height: 1;
+    color: var(--fg-0);
+  }
+  .metric--energy .metric__value { color: var(--energy-300); }
+  .metric--ember .metric__value { color: var(--ember); }
+  .metric__unit {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--fg-2);
+    margin-left: 0.4em;
+  }
+  .metric__value--empty { min-height: 3.2rem; }
+  .metric__note { color: var(--fg-3); text-transform: none; letter-spacing: 0.06em; }
+</style>

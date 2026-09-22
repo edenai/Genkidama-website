@@ -1,0 +1,107 @@
+---
+import { sections, externalLinks } from '@data/navigation';
+---
+
+<header class="nav" role="banner">
+  <a class="nav__mark" href="#top" aria-label="Genkidama — back to top">
+    <span class="nav__glyph" aria-hidden="true"></span>
+    <span class="nav__word">GENKIDAMA</span>
+    <span class="nav__by label label--2xs">by Eden AI</span>
+  </a>
+
+  <nav class="nav__sections" aria-label="Sections">
+    <ol>
+      {sections.map((s) => (
+        <li>
+          <a href={`#${s.id}`} data-section-link={s.id}>
+            <span class="nav__index">{s.index}</span>
+            <span class="nav__title">{s.title}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </nav>
+
+  <div class="nav__links">
+    {externalLinks.map((l) => (
+      <a
+        class="label label--strong"
+        href={l.href}
+        target={l.external ? '_blank' : undefined}
+        rel={l.external ? 'noopener noreferrer' : undefined}
+      >
+        {l.label}{l.external && <span aria-hidden="true"> ↗</span>}
+      </a>
+    ))}
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: var(--z-nav);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-4) var(--gutter);
+    pointer-events: none;
+    /* No solid bar: a soft occluder so text stays readable over the stage. */
+    background: linear-gradient(to bottom, rgba(5, 7, 8, 0.85), rgba(5, 7, 8, 0));
+  }
+  .nav > * { pointer-events: auto; }
+
+  .nav__mark {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-sm);
+    letter-spacing: 0.22em;
+    color: var(--fg-0);
+  }
+  .nav__glyph {
+    align-self: center;
+    width: 8px; height: 8px;
+    background: var(--energy-500);
+    box-shadow: var(--glow-sm);
+  }
+  .nav__by { color: var(--fg-2); letter-spacing: var(--tracking-label); }
+
+  .nav__sections ol {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-5);
+  }
+  .nav__sections a {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5em;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--fg-2);
+    padding: var(--space-1) 0;
+    border-bottom: 1px solid transparent;
+    transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+  .nav__sections a:hover { color: var(--fg-0); }
+  .nav__sections a.is-current { color: var(--fg-0); border-bottom-color: var(--energy-500); }
+  .nav__index { color: var(--energy-500); }
+  .nav__title { display: none; }
+  @media (min-width: 1500px) { .nav__title { display: inline; } }
+
+  .nav__links { display: flex; gap: var(--space-5); }
+  .nav__links a { white-space: nowrap; }
+
+  @media (max-width: 899px) {
+    .nav { grid-template-columns: 1fr auto; gap: var(--space-4); }
+    .nav__sections { display: none; }
+    .nav__by { display: none; }
+  }
+</style>

@@ -1,0 +1,52 @@
+---
+import { sections } from '@data/navigation';
+---
+
+<nav class="rail" aria-label="Section index">
+  <ol>
+    {sections.map((s) => (
+      <li>
+        <a href={`#${s.id}`} data-section-link={s.id} title={s.title}>
+          <span class="rail__tick" aria-hidden="true"></span>
+          <span class="rail__index">{s.index}</span>
+          <span class="visually-hidden">{s.title}</span>
+        </a>
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .rail {
+    position: fixed;
+    top: 50%;
+    left: var(--gutter);
+    transform: translateY(-50%);
+    z-index: var(--z-rail);
+    display: none;
+  }
+  @media (min-width: 900px) { .rail { display: block; } }
+
+  .rail ol { display: flex; flex-direction: column; gap: var(--space-3); }
+  .rail a {
+    display: grid;
+    grid-template-columns: 14px auto;
+    align-items: center;
+    gap: var(--space-2);
+    height: 1.4rem;
+    color: var(--fg-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
+    transition: color var(--dur-base) var(--ease-out);
+  }
+  .rail__tick {
+    width: 14px; height: 1px;
+    background: currentColor;
+    transform-origin: left center;
+    transition: transform var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out);
+  }
+  .rail a:hover { color: var(--fg-1); }
+  .rail a.is-current { color: var(--fg-0); }
+  .rail a.is-current .rail__tick { background: var(--energy-500); transform: scaleX(1.6); box-shadow: var(--glow-sm); }
+</style>

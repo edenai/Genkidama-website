@@ -1,0 +1,70 @@
+---
+/**
+ * Two approaches side by side with a central divider. Items are statements,
+ * not features; the divider carries the axis of comparison.
+ */
+export interface ComparisonSide {
+  eyebrow: string;
+  title: string;
+  items: string[];
+  tone?: 'neutral' | 'energy';
+}
+interface Props {
+  left: ComparisonSide;
+  right: ComparisonSide;
+  axis?: string;
+  class?: string;
+}
+const { left, right, axis = 'vs', class: className } = Astro.props;
+---
+
+<div class:list={['compare frame', className]}>
+  {[left, right].map((side, i) => (
+    <section class:list={['compare__side', `compare__side--${side.tone ?? 'neutral'}`]} aria-label={side.title}>
+      <span class="label">{side.eyebrow}</span>
+      <h4 class="compare__title display display--md">{side.title}</h4>
+      <ul class="compare__items">
+        {side.items.map((it) => (
+          <li><span class="compare__tick" aria-hidden="true"></span>{it}</li>
+        ))}
+      </ul>
+      {i === 0 && <span class="compare__axis label" aria-hidden="true">{axis}</span>}
+    </section>
+  ))}
+</div>
+
+<style>
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .compare__side {
+    position: relative;
+    display: grid;
+    gap: var(--space-4);
+    align-content: start;
+    padding: var(--space-5);
+  }
+  .compare__side:first-child { border-right: 1px solid var(--line); }
+  .compare__side--energy .compare__title { color: var(--energy-300); }
+  .compare__items { display: grid; gap: var(--space-3); color: var(--fg-1); font-size: var(--text-sm); }
+  .compare__items li { display: grid; grid-template-columns: 12px 1fr; gap: var(--space-3); align-items: baseline; }
+  .compare__tick { width: 10px; height: 1px; background: var(--fg-3); transform: translateY(-0.3em); }
+  .compare__side--energy .compare__tick { background: var(--energy-500); }
+  .compare__axis {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translate(50%, -50%);
+    padding: 0.3rem 0.5rem;
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    color: var(--fg-2);
+    z-index: 1;
+  }
+  @media (max-width: 640px) {
+    .compare { grid-template-columns: 1fr; }
+    .compare__side:first-child { border-right: 0; border-bottom: 1px solid var(--line); }
+    .compare__axis { top: auto; right: auto; bottom: 0; left: var(--space-5); transform: translateY(50%); }
+  }
+</style>

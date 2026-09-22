@@ -1,0 +1,53 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Stage from '@/components/visual/Stage.astro';
+import Hero from '@/components/sections/Hero.astro';
+import Story from '@/components/sections/Story.astro';
+import Idea from '@/components/sections/Idea.astro';
+import Gap from '@/components/sections/Gap.astro';
+import Bridge from '@/components/sections/Bridge.astro';
+import Composition from '@/components/sections/Composition.astro';
+import Experiment from '@/components/sections/Experiment.astro';
+import Mechanism from '@/components/sections/Mechanism.astro';
+import NextProblem from '@/components/sections/NextProblem.astro';
+---
+
+<BaseLayout
+  title="Genkidama — give any model access to any capability"
+  description="An Eden AI research project: a text-only model gathers vision, speech, OCR, web and document capabilities through Eden AI's MCP server."
+>
+  <Stage />
+  <main id="main">
+    <Hero />
+    <Story />
+    <div class="content" data-content>
+      <Idea />
+      <Gap />
+      <Bridge />
+      <Composition />
+      <Experiment />
+      <Mechanism />
+      <NextProblem />
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  main { position: relative; z-index: var(--z-content); }
+  /* Content sits on a translucent surface so the dimmed system stays faintly
+     alive underneath; a soft edge at the top lets the story hand over. */
+  .content {
+    position: relative;
+    background: rgba(5, 7, 8, 0.86);
+    border-top: 1px solid var(--line);
+  }
+  .content::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: -30vh;
+    height: 30vh;
+    background: linear-gradient(to bottom, transparent, rgba(5, 7, 8, 0.86));
+    pointer-events: none;
+  }
+</style>

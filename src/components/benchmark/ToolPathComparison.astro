@@ -1,0 +1,122 @@
+---
+/**
+ * The two routes to an answer, drawn as station lines. Gemini reads the
+ * asset natively; DeepSeek routes through MCP to a specialist and back.
+ */
+import type { BenchmarkDataset, ModelId, ToolPathStep } from '@data/benchmark';
+
+interface Props {
+  data: BenchmarkDataset;
+  scenarioId?: string;
+  class?: string;
+}
+const { data, scenarioId, class: className } = Astro.props;
+const scenario = data.scenarios.find((s) => s.id === scenarioId) ?? data.scenarios[0]!;
+const modelIds = Object.keys(data.models) as ModelId[];
+const kindLabel: Record<ToolPathStep['kind'], string> = {
+  model: 'model',
+  mcp: 'gateway',
+  tool: 'specialist',
+  result: 'answer',
+  native: 'binary input',
+};
+---
+
+<figure class:list={['paths frame', className]}>
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> tool path · {scenario.name}</span>
+    <span class="label label--2xs">{scenario.assets.join(', ')}</span>
+  </figcaption>
+
+  <div class="paths__rows">
+    {modelIds.map((id) => {
+      const run = scenario.runs[id];
+      const m = data.models[id];
+      return (
+        <div class="paths__row" style={`--series: var(${m.seriesVar})`}>
+          <div class="paths__model">
+            <span class="paths__swatch" aria-hidden="true"></span>
+            <span class="paths__name">{m.name}</span>
+            <span class="label label--2xs">{m.usesMcp ? 'text + mcp' : 'native'}</span>
+          </div>
+          <ol class="paths__line" aria-label={`${m.name} tool path`}>
+            {run.toolPath.map((step, i) => (
+              <li class:list={['paths__step', `paths__step--${step.kind}`]}>
+                <span class="paths__station" aria-hidden="true"></span>
+                <span class="paths__label">{step.label}</span>
+                <span class="paths__kind label label--2xs">{kindLabel[step.kind]}</span>
+                {i < run.toolPath.length - 1 && <span class="paths__edge" aria-hidden="true"></span>}
+              </li>
+            ))}
+          </ol>
+          <div class="paths__stats label label--2xs">
+            <span>mcp calls <strong class="num">{run.metrics.mcpCalls ?? '—'}</strong></span>
+            <span>failures <strong class="num">{run.metrics.toolFailures ?? '—'}</strong></span>
+            <span>latency <strong class="num">{run.metrics.latencyMs === null ? '—' : `${run.metrics.latencyMs} ms`}</strong></span>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</figure>
+
+<style>
+  .paths__rows { display: grid; }
+  .paths__row {
+    display: grid;
+    grid-template-columns: 11rem 1fr auto;
+    gap: var(--space-5);
+    align-items: center;
+    padding: var(--space-5) var(--space-4);
+  }
+  .paths__row + .paths__row { border-top: 1px solid var(--line); }
+  .paths__model { display: grid; gap: 0.2rem; }
+  .paths__swatch { width: 18px; height: 3px; background: var(--series); }
+  .paths__name { font-family: var(--font-display); font-weight: 600; color: var(--fg-0); letter-spacing: 0.04em; }
+
+  .paths__line { display: flex; align-items: flex-start; }
+  .paths__step {
+    position: relative;
+    flex: 1 1 0;
+    display: grid;
+    justify-items: start;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .paths__step:last-child { flex: 0 0 auto; }
+  .paths__station {
+    width: 9px; height: 9px;
+    border: 1px solid var(--fg-2);
+    background: var(--bg-0);
+    transform: rotate(45deg);
+    margin: 0.35rem 0 0.25rem 0.2rem;
+  }
+  .paths__step--mcp .paths__station { border-color: var(--energy-500); background: var(--energy-900); }
+  .paths__step--tool .paths__station { border-radius: 50%; transform: none; border-color: var(--energy-300); }
+  .paths__step--result .paths__station { border-color: var(--ember); background: var(--ember-deep); }
+  .paths__step--native .paths__station { border-style: dashed; }
+  .paths__edge {
+    position: absolute;
+    top: 0.75rem;
+    left: 1.1rem;
+    right: 0.3rem;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, var(--series) 0 4px, transparent 4px 10px);
+    opacity: 0.7;
+  }
+  .paths__label { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .paths__step--mcp .paths__label { color: var(--energy-300); }
+  .paths__step--result .paths__label { color: var(--ember); }
+  .paths__kind { color: var(--fg-3); }
+
+  .paths__stats { display: grid; gap: 0.3rem; color: var(--fg-2); text-align: right; }
+  .paths__stats strong { color: var(--fg-0); font-weight: 500; margin-left: 0.4em; }
+
+  @media (max-width: 899px) {
+    .paths__row { grid-template-columns: 1fr; gap: var(--space-4); }
+    .paths__stats { display: flex; gap: var(--space-4); text-align: left; }
+  }
+  @media (max-width: 640px) {
+    .paths__kind { display: none; }
+  }
+</style>

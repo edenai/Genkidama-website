@@ -1,0 +1,115 @@
+---
+/**
+ * Model → MCP gateway → specialists, drawn as a routing schematic rather than
+ * boxes-and-arrows. Built from the capability catalogue. Carriers animate
+ * (dash flow) unless motion is reduced.
+ */
+import { capabilities } from '@data/capabilities';
+
+const W = 760;
+const H = 420;
+const modelX = 70;
+const gateX = 330;
+const toolX = 620;
+const cy = H / 2;
+const n = capabilities.length;
+const toolYs = capabilities.map((_, i) => 40 + (i * (H - 80)) / (n - 1));
+---
+
+<figure class="arch frame">
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> architecture</span>
+    <span class="label label--2xs">model · mcp gateway · {n} specialists</span>
+  </figcaption>
+  <svg class="arch__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="arch-title arch-desc">
+    <title id="arch-title">Genkidama architecture</title>
+    <desc id="arch-desc">
+      A text-only model connects to Eden AI's MCP gateway, which routes tool calls to {n} specialist capabilities and returns results to the model.
+    </desc>
+
+    <!-- model -> gateway request + return -->
+    <path class="arch__carrier arch__carrier--req" d={`M ${modelX + 46} ${cy - 6} H ${gateX - 46}`} />
+    <path class="arch__carrier arch__carrier--res" d={`M ${gateX - 46} ${cy + 6} H ${modelX + 46}`} />
+
+    <!-- gateway -> tools fan -->
+    {toolYs.map((y, i) => (
+      <path
+        class="arch__carrier arch__carrier--fan"
+        style={`--d:${i * 0.18}s`}
+        d={`M ${gateX + 46} ${cy} C ${gateX + 140} ${cy}, ${toolX - 140} ${y}, ${toolX - 10} ${y}`}
+      />
+    ))}
+
+    <!-- model -->
+    <g class="arch__node arch__node--model" transform={`translate(${modelX} ${cy})`}>
+      <rect x="-46" y="-30" width="92" height="60" />
+      <text class="arch__title" y="-3">MODEL</text>
+      <text class="arch__sub" y="14">text-only</text>
+    </g>
+
+    <!-- gateway: a ring with a core -->
+    <g class="arch__node arch__node--gate" transform={`translate(${gateX} ${cy})`}>
+      <circle r="46" class="arch__ring" />
+      <circle r="34" class="arch__ring arch__ring--inner" />
+      <circle r="5" class="arch__core" />
+      <text class="arch__title" y="-58">MCP</text>
+      <text class="arch__sub" y="70">eden ai gateway</text>
+    </g>
+
+    <!-- tools -->
+    {capabilities.map((c, i) => (
+      <g class="arch__node arch__node--tool" transform={`translate(${toolX} ${toolYs[i]})`} style={`--accent:${c.accent}`}>
+        <circle r="4" class="arch__tool-dot" />
+        <text class="arch__tool-glyph" x="14" y="4">{c.glyph}</text>
+        <text class="arch__tool-name" x="44" y="4">{c.name.toUpperCase()}</text>
+      </g>
+    ))}
+
+    <!-- annotations -->
+    <text class="arch__annot" x={modelX + 52} y={cy - 12}>tool_call</text>
+    <text class="arch__annot arch__annot--ember" x={modelX + 52} y={cy + 22}>result</text>
+  </svg>
+</figure>
+
+<style>
+  .arch__svg { width: 100%; height: auto; display: block; padding: var(--space-4); }
+  .arch__carrier {
+    fill: none;
+    stroke: var(--line-strong);
+    stroke-width: 1;
+  }
+  .arch__carrier--req { stroke: var(--energy-500); stroke-dasharray: 6 10; animation: dash-flow 1.6s linear infinite; }
+  .arch__carrier--res { stroke: var(--ember); stroke-dasharray: 6 10; animation: dash-flow 1.6s linear infinite reverse; opacity: 0.8; }
+  .arch__carrier--fan { stroke: var(--energy-700); stroke-dasharray: 3 14; animation: dash-flow 2.4s linear infinite; animation-delay: var(--d); opacity: 0.85; }
+
+  .arch__node rect { fill: var(--bg-0); stroke: var(--fg-1); stroke-width: 1; }
+  .arch__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    fill: var(--fg-0);
+    text-anchor: middle;
+  }
+  .arch__sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    fill: var(--fg-2);
+    text-anchor: middle;
+  }
+  .arch__ring { fill: none; stroke: var(--energy-500); stroke-width: 1; opacity: 0.8; }
+  .arch__ring--inner { stroke-dasharray: 2 6; opacity: 0.6; animation: arch-spin 24s linear infinite; transform-origin: center; transform-box: fill-box; }
+  .arch__core { fill: var(--energy-100); filter: drop-shadow(0 0 6px var(--energy-500)); }
+  .arch__tool-dot { fill: var(--accent, var(--energy-500)); }
+  .arch__tool-glyph { font-family: var(--font-mono); font-size: 11px; fill: var(--accent, var(--energy-500)); letter-spacing: 0.1em; }
+  .arch__tool-name { font-family: var(--font-mono); font-size: 11px; fill: var(--fg-1); letter-spacing: 0.14em; }
+  .arch__annot { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; fill: var(--fg-2); }
+  .arch__annot--ember { fill: var(--ember); }
+
+  @keyframes arch-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .arch__carrier, .arch__ring--inner { animation: none; }
+  }
+</style>

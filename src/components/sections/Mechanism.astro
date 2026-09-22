@@ -1,0 +1,62 @@
+---
+import Marker from '@/components/visual/Marker.astro';
+import MetricCard from '@/components/technical/MetricCard.astro';
+import ComparisonPanel from '@/components/technical/ComparisonPanel.astro';
+---
+
+<section class="section mechanism" id="mechanism" aria-labelledby="mech-title">
+  <div class="container">
+    <div class="section__head">
+      <Marker index="06" title="The mechanism" />
+      <span class="label label--2xs">what is actually measured</span>
+    </div>
+
+    <div class="grid">
+      <div style="grid-column: 1 / span 5" data-reveal>
+        <h2 id="mech-title" class="display display--lg">Cost, time and correctness, per call.</h2>
+        <p class="prose" style="margin-top: var(--space-4)">
+          Each scenario records agreement, tool traffic, latency split between model and tools,
+          tokens and two cost lines. The cards are wired to the same dataset as the experiment
+          section and stay empty until it is live.
+        </p>
+      </div>
+
+      <div class="mechanism__cards" style="grid-column: 7 / span 6" data-reveal data-reveal-delay="0.1">
+        <MetricCard label="ground-truth agreement" unit="%" note="mean over scenarios" accent="energy" />
+        <MetricCard label="mcp calls" note="per scenario, deepseek + mcp" />
+        <MetricCard label="tool latency share" unit="%" note="tool ms / total ms" />
+        <MetricCard label="expert-tool cost" unit="$" note="per scenario" accent="ember" />
+      </div>
+
+      <div style="grid-column: 1 / -1" data-reveal>
+        <ComparisonPanel
+          axis="same task"
+          left={{
+            eyebrow: 'route a',
+            title: 'Native multimodal',
+            items: [
+              'The model ingests the binary asset directly.',
+              'No tool traffic; latency is all model latency.',
+              'Capability bounded by the model’s training.',
+            ],
+          }}
+          right={{
+            eyebrow: 'route b',
+            title: 'Text model + MCP specialists',
+            tone: 'energy',
+            items: [
+              'The model describes what it needs; the gateway routes it.',
+              'Latency and cost split between model and specialist.',
+              'Capability bounded by the catalogue, not the model.',
+            ],
+          }}
+        />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .mechanism__cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  @media (max-width: 640px) { .mechanism__cards { grid-template-columns: 1fr; } }
+</style>

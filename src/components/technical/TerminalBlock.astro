@@ -1,0 +1,102 @@
+---
+/**
+ * A session log, not a fake terminal window: timestamps, event kinds and a
+ * carrier cursor. Lines appear in sequence when the block scrolls into view.
+ */
+export interface TerminalLine {
+  t?: string;
+  kind: 'cmd' | 'out' | 'ok' | 'err' | 'info' | 'mcp';
+  text: string;
+}
+interface Props {
+  title?: string;
+  lines: TerminalLine[];
+  class?: string;
+}
+const { title = 'session', lines, class: className } = Astro.props;
+const glyph: Record<TerminalLine['kind'], string> = {
+  cmd: '›',
+  out: ' ',
+  ok: '✓',
+  err: '✗',
+  info: '·',
+  mcp: '⇄',
+};
+---
+
+<figure class:list={['term frame', className]} data-terminal>
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> {title}</span>
+    <span class="label label--2xs">{lines.length} events</span>
+  </figcaption>
+  <ol class="term__lines">
+    {lines.map((l, i) => (
+      <li class:list={['term__line', `term__line--${l.kind}`]} style={`--i:${i}`}>
+        <span class="term__t">{l.t ?? ''}</span>
+        <span class="term__glyph" aria-hidden="true">{glyph[l.kind]}</span>
+        <span class="term__text">{l.text}</span>
+      </li>
+    ))}
+    <li class="term__line term__line--cursor" aria-hidden="true">
+      <span class="term__t"></span>
+      <span class="term__glyph">›</span>
+      <span class="term__text"><span class="term__caret blink"></span></span>
+    </li>
+  </ol>
+</figure>
+
+<script>
+  const blocks = document.querySelectorAll<HTMLElement>('[data-terminal]');
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-live');
+          io.unobserve(e.target);
+        }
+      }
+    },
+    { threshold: 0.3 },
+  );
+  blocks.forEach((b) => io.observe(b));
+</script>
+
+<style>
+  .term__lines {
+    padding: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .term__line {
+    display: grid;
+    grid-template-columns: 5.5ch 1.5ch 1fr;
+    gap: var(--space-2);
+    white-space: pre-wrap;
+    color: var(--fg-1);
+  }
+  .term__t { color: var(--fg-3); font-size: var(--text-xs); line-height: inherit; }
+  .term__glyph { color: var(--fg-2); }
+  .term__line--cmd .term__text { color: var(--fg-0); }
+  .term__line--ok .term__glyph { color: var(--energy-500); }
+  .term__line--err .term__glyph { color: var(--signal-fail); }
+  .term__line--mcp .term__glyph, .term__line--mcp .term__text { color: var(--energy-300); }
+  .term__line--info { color: var(--fg-2); }
+  .term__caret {
+    display: inline-block;
+    width: 0.6em;
+    height: 1em;
+    vertical-align: -0.15em;
+    background: var(--energy-500);
+  }
+
+  /* Sequenced appearance, only with JS + motion */
+  html.js:not(.reduced-motion) .term__line { opacity: 0; }
+  html.js:not(.reduced-motion) .term.is-live .term__line {
+    animation: term-in 220ms steps(1) forwards;
+    animation-delay: calc(var(--i, 0) * 140ms);
+  }
+  html.js:not(.reduced-motion) .term.is-live .term__line--cursor { animation-delay: 1.4s; }
+  @keyframes term-in { to { opacity: 1; } }
+</style>
