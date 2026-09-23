@@ -148,6 +148,7 @@ export class GenkidamaScene implements GenkidamaHandle {
     this.resizeObserver.observe(container);
     this.resize();
     this.setupPostProcessing();
+    this.precompile();
 
     this.intersection = new IntersectionObserver(
       (entries) => {
@@ -259,6 +260,29 @@ export class GenkidamaScene implements GenkidamaHandle {
     );
     this.composer.addPass(this.bloomPass);
     this.composer.addPass(new OutputPass());
+  }
+
+  /**
+   * Compile every program up front, in parallel where the driver allows.
+   * Three compiles a material at its first draw, so anything that first
+   * becomes visible mid-scroll (the energy streams) would otherwise stall the
+   * frame loop right when the story starts.
+   */
+  private precompile() {
+    const hidden: THREE.Object3D[] = [];
+    this.system.traverse((o) => {
+      if (!o.visible) {
+        o.visible = true;
+        hidden.push(o);
+      }
+    });
+    // `compileAsync` collects the materials synchronously and only waits for
+    // the programs asynchronously, so visibility can be restored right away.
+    const ready = this.renderer.compileAsync(this.scene, this.camera);
+    for (const o of hidden) o.visible = false;
+    ready.catch(() => {
+      /* compiled lazily at first draw instead */
+    });
   }
 
   private teardownPostProcessing() {

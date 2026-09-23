@@ -33,12 +33,12 @@ ScrollTrigger, plain CSS with design tokens. No UI framework.
 
 ```
 src/
-  pages/index.astro              narrative page: Stage · Hero · Story · 01–07
+  pages/index.astro              narrative page: Stage · Hero · Story · 01–05
   layouts/BaseLayout.astro       fonts, tokens, nav, rail, footer, animation boot
   components/
     layout/                      Nav, Rail (section index), Footer
     visual/                      Stage (WebGL island), HeroWordmark, EnergyReadout, ScrollCue, Marker
-    sections/                    Hero, Story (6 phases), Idea, Gap, Bridge, Composition, Experiment, Mechanism, NextProblem
+    sections/                    Hero, Story (6 phases), Idea, Gap, Bridge (incl. one-call trace), Experiment, NextProblem
     technical/                   CodeBlock, TerminalBlock, ToolCallTrace, ArchitectureDiagram, MetricCard, ComparisonPanel
     benchmark/                   BenchmarkComparison, LatencyChart, ToolPathComparison, ScenarioExplorer
   scenes/genkidama/
