@@ -45,18 +45,45 @@ export function initHero(scene: GenkidamaHandle, reducedMotion: boolean) {
     const timeout = new Promise<void>((r) => setTimeout(r, 1200));
     Promise.race([fontsReady, timeout]).then(() => intro.play(), () => intro.play());
 
-    // Disperse on scroll: the word gives way to the system.
-    gsap.to(letters, {
-      x: (i) => (i - mid) * 34,
-      opacity: 0.08,
-      ease: 'none',
-      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 0.4 },
-    });
-    gsap.to(reveals, {
-      opacity: 0,
-      ease: 'none',
-      scrollTrigger: { trigger: hero, start: 'top top', end: '60% top', scrub: 0.4 },
-    });
+    // Disperse on scroll: the word gives way to the system. The scrubbed
+    // tweens start from the assembled word (explicit `from` values) and never
+    // render before the visitor scrolls (`immediateRender: false`): a plain
+    // `to()` would record its start values while the intro still holds the
+    // letters dispersed and transparent, so the word would drop out on the
+    // first scrolled pixel and never come back when scrolling up. Scrubbing
+    // back to the top now restores the assembled hero.
+    gsap.fromTo(
+      letters,
+      { x: 0, opacity: 1 },
+      {
+        x: (i) => (i - mid) * 34,
+        opacity: 0.08,
+        ease: 'none',
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: hero,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: 0.4,
+          // Scrolling before the word has finished assembling: settle it, so
+          // the disperse starts from the assembled word and the intro cannot
+          // re-render its end state later, on top of the scrubbed state.
+          onEnter: () => {
+            if (intro.progress() < 1) intro.progress(1);
+          },
+        },
+      },
+    );
+    gsap.fromTo(
+      reveals,
+      { opacity: 1 },
+      {
+        opacity: 0,
+        ease: 'none',
+        immediateRender: false,
+        scrollTrigger: { trigger: hero, start: 'top top', end: '60% top', scrub: 0.4 },
+      },
+    );
   } else {
     gsap.set(letters, { opacity: 1 });
     gsap.set(reveals, { opacity: 1 });

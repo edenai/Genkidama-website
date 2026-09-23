@@ -141,7 +141,10 @@ export class GenkidamaScene implements GenkidamaHandle {
 
     this.system.add(this.ambient.mesh, this.core.mesh, this.particles.points, this.mcp.group, this.streams.group, this.nodes.points, this.pulses.points);
 
-    this.resizeObserver = new ResizeObserver(() => this.resize());
+    // The container resizes outside the frame loop (after this frame's draw,
+    // before paint); redraw right away so the freshly cleared drawing buffer
+    // is never the one that gets composited.
+    this.resizeObserver = new ResizeObserver(() => this.resize(true));
     this.resizeObserver.observe(container);
     this.resize();
     this.setupPostProcessing();
@@ -220,7 +223,14 @@ export class GenkidamaScene implements GenkidamaHandle {
 
   private onVisibility = () => this.syncRunning();
 
-  private resize() {
+  /**
+   * Size the drawing buffer to the container. Assigning a canvas size clears
+   * the WebGL drawing buffer, so unless a draw follows in the same frame the
+   * browser composites an empty (black) canvas for one frame. `redraw`
+   * repaints the last state immediately when the resize comes from outside
+   * the frame loop.
+   */
+  private resize(redraw = false) {
     const r = this.container.getBoundingClientRect();
     this.width = Math.max(1, Math.round(r.width));
     this.height = Math.max(1, Math.round(r.height));
@@ -232,6 +242,7 @@ export class GenkidamaScene implements GenkidamaHandle {
     this.live.dpr = this.dpr;
     this.composer?.setSize(this.width, this.height);
     this.composer?.setPixelRatio(this.dpr);
+    if (redraw && this.drawn && !this.disposed) this.draw();
   }
 
   private setupPostProcessing() {
@@ -277,6 +288,20 @@ export class GenkidamaScene implements GenkidamaHandle {
   }
 
   private frameIndex = 0;
+  private drawn = false;
+
+  /** Render the current state into the drawing buffer. */
+  private draw() {
+    const p = this.state.current;
+    if (this.bloomPass) {
+      const e = Math.min(1.3, p.coreEnergy + this.state.energyPulse * 0.5);
+      this.bloomPass.strength = bloomCfg.strengthMin + (bloomCfg.strengthMax - bloomCfg.strengthMin) * e;
+      this.bloomPass.strength *= 1 - this.dim * 0.5;
+    }
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
+    this.drawn = true;
+  }
 
   private frame = (now: number) => {
     if (!this.running) return;
@@ -291,6 +316,11 @@ export class GenkidamaScene implements GenkidamaHandle {
     const timeScale = this.options.reducedMotion ? 0.15 : 1;
     const dt = rawDt;
     this.live.time += dt * timeScale;
+
+    // Adapt before drawing: a quality step-down resizes the drawing buffer
+    // (which clears it), so it must happen before this frame's draw, never
+    // after it.
+    this.adapt(rawDt);
 
     this.state.update(dt);
     const p = this.state.current;
@@ -329,16 +359,7 @@ export class GenkidamaScene implements GenkidamaHandle {
     this.pulses.update(dt, this.live);
     this.nodes.projectLabels(this.camera, this.system, this.width, this.height, this.live);
 
-    if (this.bloomPass) {
-      const e = Math.min(1.3, p.coreEnergy + this.state.energyPulse * 0.5);
-      this.bloomPass.strength = bloomCfg.strengthMin + (bloomCfg.strengthMax - bloomCfg.strengthMin) * e;
-      this.bloomPass.strength *= 1 - this.dim * 0.5;
-    }
-
-    if (this.composer) this.composer.render();
-    else this.renderer.render(this.scene, this.camera);
-
-    this.adapt(rawDt);
+    this.draw();
 
     if (this.listeners.size) {
       const info = {
