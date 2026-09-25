@@ -11,9 +11,10 @@ const year = new Date().getFullYear();
     <div class="footer__col">
       <span class="label">Index</span>
       <ul class="footer__list">
-        <li><a href="#idea">01 The idea</a></li>
-        <li><a href="#bridge">03 The bridge</a></li>
-        <li><a href="#experiment">04 The experiment</a></li>
+        <li><a href="/#idea">01 The idea</a></li>
+        <li><a href="/#bridge">03 The bridge</a></li>
+        <li><a href="/#next">04 The next problem</a></li>
+        <li><a href="/details" class="footer__quiet">Details · experiments, in progress</a></li>
       </ul>
     </div>
     <div class="footer__col">
@@ -52,6 +53,7 @@ const year = new Date().getFullYear();
     color: var(--fg-1);
   }
   .footer__list a:hover { color: var(--energy-300); }
+  .footer__list .footer__quiet { color: var(--fg-3); }
   .footer__meta {
     grid-column: 1 / -1;
     display: flex;

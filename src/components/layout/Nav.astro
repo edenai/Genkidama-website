@@ -1,9 +1,15 @@
 ---
 import { sections, externalLinks } from '@data/navigation';
+
+interface Props {
+  /** '' on the home page, '/' on secondary pages so anchors resolve to the home page */
+  base?: string;
+}
+const { base = '' } = Astro.props;
 ---
 
 <header class="nav" role="banner">
-  <a class="nav__mark" href="#top" aria-label="Genkidama — back to top">
+  <a class="nav__mark" href={`${base}#top`} aria-label="Genkidama — back to top">
     <span class="nav__glyph" aria-hidden="true"></span>
     <span class="nav__word">GENKIDAMA</span>
     <span class="nav__by label label--2xs">by Eden AI</span>
@@ -13,7 +19,7 @@ import { sections, externalLinks } from '@data/navigation';
     <ol>
       {sections.map((s) => (
         <li>
-          <a href={`#${s.id}`} data-section-link={s.id}>
+          <a href={`${base}#${s.id}`} data-section-link={s.id}>
             <span class="nav__index">{s.index}</span>
             <span class="nav__title">{s.title}</span>
           </a>
@@ -40,7 +46,7 @@ import { sections, externalLinks } from '@data/navigation';
         */}
         <a
           class="label label--strong"
-          href={l.href}
+          href={l.external ? l.href : `${base}${l.href}`}
           target={l.external ? '_blank' : undefined}
           rel={l.external ? 'noopener noreferrer' : undefined}
         >

@@ -18,8 +18,10 @@ const legend: Record<Cell, string> = { native: 'native', absent: 'out of reach',
       <div style="grid-column: 1 / span 4" data-reveal>
         <h2 id="gap-title" class="display display--lg">Where the reach ends.</h2>
         <p class="prose" style="margin-top: var(--space-4)">
-          One catalogue, three positions: a text-only model, a natively multimodal model, and
-          the text-only model with Eden AI's MCP server in reach.
+          A capable model can still be unable to inspect an image, transcribe audio, read a
+          scanned page or search the web on its own. The limit is not reasoning; it is direct
+          access. One catalogue, three positions: a text-only model, a natively multimodal model,
+          and the text-only model with Eden AI's MCP server in reach.
         </p>
         <dl class="gap__legend">
           {(Object.keys(legend) as Cell[]).map((k) => (

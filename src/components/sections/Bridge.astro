@@ -1,16 +1,17 @@
 ---
 import Marker from '@/components/visual/Marker.astro';
 import ArchitectureDiagram from '@/components/technical/ArchitectureDiagram.astro';
-import ToolCallTrace from '@/components/technical/ToolCallTrace.astro';
+import ToolCallTrace, { type TraceStep } from '@/components/technical/ToolCallTrace.astro';
 import CodeBlock from '@/components/technical/CodeBlock.astro';
 import TerminalBlock, { type TerminalLine } from '@/components/technical/TerminalBlock.astro';
+import { MCP_DOCS_URL } from '@data/mcpCatalog';
 
 // Example round trip through one specialist (OCR). An illustrative interaction,
-// not a benchmark measurement: the experiment section carries the measurements.
+// not a measurement: the experiments live on the details page.
 const toolCall = `{
   "method": "tools/call",
   "params": {
-    "name": "eden.ocr.extract",
+    "name": "ocr",
     "arguments": {
       "file": "receipt-014.jpg",
       "language": "auto"
@@ -18,11 +19,19 @@ const toolCall = `{
   }
 }`;
 
+const steps: TraceStep[] = [
+  { kind: 'model', label: 'MODEL', detail: 'text-only · decides it needs OCR' },
+  { kind: 'mcp', label: 'MCP', detail: 'eden ai gateway · routes the call' },
+  { kind: 'tool', label: 'OCR', detail: 'ocr · reads the image' },
+  { kind: 'result', label: 'RESULT', detail: 'text · returned as context' },
+  { kind: 'model', label: 'MODEL', detail: 'continues reasoning' },
+];
+
 const lines: TerminalLine[] = [
   { t: '00.000', kind: 'cmd', text: 'prompt  "What is the total on this receipt?"' },
-  { t: '00.412', kind: 'info', text: 'model   text-only · cannot read image' },
-  { t: '00.418', kind: 'mcp', text: 'tools/call eden.ocr.extract  →  mcp gateway' },
-  { t: '00.830', kind: 'ok', text: 'ocr     412 ms · 1.2 kB text returned' },
+  { t: '00.412', kind: 'info', text: 'model   text-only · cannot read the image' },
+  { t: '00.418', kind: 'mcp', text: 'tools/call ocr  →  mcp gateway' },
+  { t: '00.830', kind: 'ok', text: 'ocr     text returned' },
   { t: '01.204', kind: 'out', text: 'answer  "The total is €48.20."' },
 ];
 ---
@@ -44,16 +53,24 @@ const lines: TerminalLine[] = [
       </div>
       <div style="grid-column: 6 / span 6" data-reveal data-reveal-delay="0.1">
         <p class="prose">
-          MCP gives the model a standard way to discover tools, call them and receive results.
-          Eden AI exposes its specialist catalogue behind that one interface: vision, OCR,
-          speech and audio, documents, video, web, translation. The model does not need to
-          know how any of them work, only how to ask.
+          MCP is a standard interface between a model and external tools. Instead of building
+          every capability into the model, an agent discovers the tools a server exposes, calls
+          the one it needs and reads the result back as context.
+        </p>
+        <p class="prose">
+          Eden AI's hosted MCP server exposes its expert models this way: one tool per feature,
+          plus a few utilities. OCR, image analysis, web search, speech, translation and the rest
+          of the catalogue become callable by any MCP-capable agent, and the catalogue is
+          discovered at runtime rather than hardcoded.
         </p>
         <ul class="bridge__facts">
           <li><span class="label">discovery</span><span class="mono">tools/list</span></li>
           <li><span class="label">invocation</span><span class="mono">tools/call</span></li>
           <li><span class="label">return</span><span class="mono">text · structured</span></li>
         </ul>
+        <a class="bridge__doc label" href={MCP_DOCS_URL} target="_blank" rel="noopener noreferrer">
+          Read the MCP server documentation <span aria-hidden="true">↗</span>
+        </a>
       </div>
 
       <div class="rule" style="grid-column: 1 / -1" data-reveal="rule"></div>
@@ -62,13 +79,14 @@ const lines: TerminalLine[] = [
       <div style="grid-column: 1 / span 4" data-reveal>
         <h3 class="display display--md">One call, out and back.</h3>
         <p class="prose" style="margin-top: var(--space-4)">
-          The model emits a tool call. The gateway routes it to a specialist, and the result
-          comes back as text the model keeps reasoning over. One example, through OCR:
+          The model decides it needs a capability and emits a tool call. The gateway routes it
+          to the specialist; the result returns as text, and the model keeps reasoning with it.
+          One example, through OCR:
         </p>
       </div>
 
       <div style="grid-column: 5 / span 3" data-reveal data-reveal-delay="0.1">
-        <ToolCallTrace />
+        <ToolCallTrace steps={steps} />
       </div>
 
       <div class="bridge__stack" style="grid-column: 8 / span 5" data-reveal data-reveal-delay="0.2">
@@ -82,5 +100,15 @@ const lines: TerminalLine[] = [
 <style>
   .bridge__facts { display: grid; gap: var(--space-2); margin-top: var(--space-6); max-width: var(--measure); }
   .bridge__facts li { display: grid; grid-template-columns: 8rem 1fr; padding: var(--space-2) 0; border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--fg-0); }
+  .bridge__doc {
+    display: inline-flex;
+    gap: 0.5em;
+    margin-top: var(--space-5);
+    color: var(--fg-1);
+    border-bottom: 1px solid var(--line-energy);
+    padding-bottom: 0.2em;
+    transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+  .bridge__doc:hover { color: var(--energy-300); border-bottom-color: var(--energy-500); }
   .bridge__stack { display: grid; gap: var(--space-5); align-content: start; }
 </style>

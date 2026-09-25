@@ -278,11 +278,16 @@ export class GenkidamaScene implements GenkidamaHandle {
     });
     // `compileAsync` collects the materials synchronously and only waits for
     // the programs asynchronously, so visibility can be restored right away.
-    const ready = this.renderer.compileAsync(this.scene, this.camera);
+    // Without KHR_parallel_shader_compile it would only warn, so compile
+    // synchronously there: still at startup, never mid-scroll.
+    if (this.renderer.extensions.has('KHR_parallel_shader_compile')) {
+      this.renderer.compileAsync(this.scene, this.camera).catch(() => {
+        /* compiled lazily at first draw instead */
+      });
+    } else {
+      this.renderer.compile(this.scene, this.camera);
+    }
     for (const o of hidden) o.visible = false;
-    ready.catch(() => {
-      /* compiled lazily at first draw instead */
-    });
   }
 
   private teardownPostProcessing() {

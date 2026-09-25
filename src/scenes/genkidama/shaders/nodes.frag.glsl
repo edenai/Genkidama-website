@@ -14,7 +14,7 @@ void main() {
   float ring = smoothstep(0.02, 0.0, abs(d - 0.40)) * 0.9;
   float dotR = 0.06 + vEnergy * 0.12;
   float dot_ = smoothstep(dotR, dotR - 0.03, d);
-  float ang = atan(uv.y, uv.x);
+  float ang = atan(uv.y, uv.x + 1e-5); // atan(0, 0) is undefined
   float tick = smoothstep(0.03, 0.0, abs(d - 0.40)) * step(0.985, cos(ang - uTime * 1.8)) * vActive;
   // Charged halo when streaming.
   float halo = exp(-d * d * 30.0) * vActive * 0.6;

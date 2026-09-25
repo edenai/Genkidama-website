@@ -23,7 +23,10 @@ void main() {
   float flow2 = fbm(q * 1.9 + vec3(4.2, 1.3, 9.1) + uTime * 0.2);
 
   // Filaments: ridged noise -> thin bright lines that crawl over the surface.
-  float ridge = 1.0 - abs(snoise(N * (3.0 + uTurbulence * 2.0) + vec3(0.0, uTime * 0.35, 0.0)));
+  // snoise can slightly exceed +-1, which would make `ridge` negative and
+  // pow() return NaN; a single NaN texel is then smeared over the whole frame
+  // by the bloom blur and the canvas goes black. Clamp before pow().
+  float ridge = max(0.0, 1.0 - abs(snoise(N * (3.0 + uTurbulence * 2.0) + vec3(0.0, uTime * 0.35, 0.0))));
   float filaments = pow(ridge, 10.0 + (1.0 - uEnergy) * 14.0);
 
   // Base body: deep -> mid by flow; brighten with energy.

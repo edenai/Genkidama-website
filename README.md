@@ -33,12 +33,13 @@ ScrollTrigger, plain CSS with design tokens. No UI framework.
 
 ```
 src/
-  pages/index.astro              narrative page: Stage · Hero · Story · 01–05
+  pages/index.astro              narrative page: Stage · Hero · Story · 01–04
+  pages/details.astro            experiments (V2, unlinked from the main flow): 12 sections, null metrics
   layouts/BaseLayout.astro       fonts, tokens, nav, rail, footer, animation boot
   components/
     layout/                      Nav, Rail (section index), Footer
     visual/                      Stage (WebGL island), HeroWordmark, EnergyReadout, ScrollCue, Marker
-    sections/                    Hero, Story (6 phases), Idea, Gap, Bridge (incl. one-call trace), Experiment, NextProblem
+    sections/                    Hero, Story (6 phases), Idea, Gap, Bridge (incl. one-call trace), NextProblem
     technical/                   CodeBlock, TerminalBlock, ToolCallTrace, ArchitectureDiagram, MetricCard, ComparisonPanel
     benchmark/                   BenchmarkComparison, LatencyChart, ToolPathComparison, ScenarioExplorer
   scenes/genkidama/
@@ -51,7 +52,7 @@ src/
     registry.ts                  rendezvous between the island and the scroll choreography
     shaders/*.glsl               core, halo, particles, nodes, ring, stream, pulses, noise
   animations/scroll/             GSAP: story sync, hero wordmark, reveals, rail
-  data/                          capabilities, navigation, benchmark schema + placeholder shell
+  data/                          capabilities, navigation, mcpCatalog (39 tools in 8 families), benchmark schema + placeholder shell
   config/                        visual constants, quality profiles, animation keyframes
   styles/                        tokens · typography · motion · global
 ```
@@ -77,5 +78,5 @@ in `src/data/capabilities.ts`; quality tiers in `src/config/visual.ts`.
 `src/data/benchmark.ts` defines the dataset schema (`BenchmarkDataset`,
 `Scenario`, `ScenarioMetrics`) and a placeholder shell whose metrics are all
 `null`. Benchmark components render skeleton states for `null` and real
-values otherwise. Replace `benchmarkPlaceholder` in `Experiment.astro` with a
+values otherwise. Replace `benchmarkPlaceholder` in `pages/details.astro` with a
 loader once measurements exist. No statistics are hardcoded anywhere.

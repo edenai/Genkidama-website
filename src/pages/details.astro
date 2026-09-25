@@ -1,0 +1,384 @@
+---
+/**
+ * Details: the experimental side of Genkidama, kept off the V1 storytelling
+ * flow. Reachable by URL only (and a quiet footer link). Twelve sections lay
+ * out what the V2 research page will hold; every measurement is null until
+ * the benchmark pass, and the components render honest skeletons for null.
+ */
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Marker from '@/components/visual/Marker.astro';
+import BenchmarkComparison from '@/components/benchmark/BenchmarkComparison.astro';
+import LatencyChart from '@/components/benchmark/LatencyChart.astro';
+import ToolPathComparison from '@/components/benchmark/ToolPathComparison.astro';
+import ScenarioExplorer from '@/components/benchmark/ScenarioExplorer.astro';
+import MetricCard from '@/components/technical/MetricCard.astro';
+import ComparisonPanel from '@/components/technical/ComparisonPanel.astro';
+import { benchmarkPlaceholder, models, type ModelId } from '@data/benchmark';
+import { MCP_DOCS_URL, MCP_TOOL_COUNT } from '@data/mcpCatalog';
+
+// Swap this import for the live loader when results land. Components accept
+// any BenchmarkDataset; skeletons appear wherever a metric is null.
+const data = benchmarkPlaceholder;
+const modelIds = Object.keys(models) as ModelId[];
+
+const sections = [
+  { id: 'experiment', index: '01', title: 'Experiment' },
+  { id: 'setup', index: '02', title: 'Setup' },
+  { id: 'dataset', index: '03', title: 'Dataset' },
+  { id: 'models', index: '04', title: 'Models' },
+  { id: 'mcp-path', index: '05', title: 'MCP path' },
+  { id: 'native-path', index: '06', title: 'Native path' },
+  { id: 'results', index: '07', title: 'Results' },
+  { id: 'latency', index: '08', title: 'Latency' },
+  { id: 'cost', index: '09', title: 'Cost' },
+  { id: 'tool-usage', index: '10', title: 'Tool usage' },
+  { id: 'analysis', index: '11', title: 'Analysis' },
+  { id: 'limitations', index: '12', title: 'Limitations' },
+];
+const sec = (id: string) => sections.find((s) => s.id === id)!;
+---
+
+<BaseLayout
+  title="Genkidama — details"
+  description="Experimental details for Genkidama: methodology, model configurations, MCP versus native paths, and measurements as they become available."
+  variant="details"
+>
+  <main id="main" class="details">
+    <header class="details__head container">
+      <span class="label">Genkidama · details</span>
+      <h1 class="display display--xl" data-reveal>
+        The experiment, <span class="energy">as it stands</span>.
+      </h1>
+      <p class="prose prose--lead" data-reveal>
+        Everything on this page is in progress. It exists so the experimental work has a home
+        while it is being debugged and extended; nothing here is a result yet, and no number is
+        shown that has not been measured.
+      </p>
+      <span class="placeholder-badge" data-reveal><span class="dot dot--ember" aria-hidden="true"></span> in progress · no results published</span>
+      <nav class="details__toc" aria-label="Details index" data-reveal>
+        <ol>
+          {sections.map((s) => (
+            <li><a href={`#${s.id}`}><span class="details__toc-index">{s.index}</span>{s.title}</a></li>
+          ))}
+        </ol>
+      </nav>
+    </header>
+
+    <div class="content" data-content>
+      {/* 01 Experiment */}
+      <section class="section section--tight" id="experiment" aria-labelledby="d-experiment">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('experiment').index} title={sec('experiment').title} />
+            <span class="label label--2xs">what is being tested</span>
+          </div>
+          <div class="grid">
+            <h2 id="d-experiment" class="display display--lg" style="grid-column: 1 / span 5" data-reveal>Same prompts. Same assets. Two routes.</h2>
+            <p class="prose" style="grid-column: 7 / span 6" data-reveal>
+              A natively multimodal model reads binary inputs directly. A text-only model reaches
+              the same modalities through Eden AI's MCP specialists. Both see identical prompts and
+              assets, with the MCP catalogue available to both. The experiment records what each
+              capability path costs in latency, tokens, tool traffic and money, and how the answers
+              compare. It does not declare a winner.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 02 Setup */}
+      <section class="section section--tight" id="setup" aria-labelledby="d-setup">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('setup').index} title={sec('setup').title} />
+            <span class="label label--2xs">two routes to one answer</span>
+          </div>
+          <h2 id="d-setup" class="visually-hidden">Setup</h2>
+          <div data-reveal>
+            <ComparisonPanel
+              axis="same task"
+              left={{
+                eyebrow: 'route a',
+                title: 'Native multimodal',
+                items: [
+                  'The model ingests the binary asset directly.',
+                  'No tool traffic; latency is model latency.',
+                  'Capability bounded by the model’s training.',
+                ],
+              }}
+              right={{
+                eyebrow: 'route b',
+                title: 'Text model + MCP specialists',
+                tone: 'energy',
+                items: [
+                  'The model describes what it needs; the gateway routes it.',
+                  'Latency and cost split between model and specialist.',
+                  'Capability bounded by the catalogue, not the model.',
+                ],
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 03 Dataset */}
+      <section class="section section--tight" id="dataset" aria-labelledby="d-dataset">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('dataset').index} title={sec('dataset').title} />
+            <span class="label label--2xs">not yet selected</span>
+          </div>
+          <div class="grid">
+            <h2 id="d-dataset" class="display display--md" style="grid-column: 1 / span 5" data-reveal>A performance dataset is still to be chosen.</h2>
+            <div style="grid-column: 7 / span 6" data-reveal>
+              <ol class="details__steps">
+                <li><span class="details__n">01</span>Identify a benchmark that exercises non-native modalities.</li>
+                <li><span class="details__n">02</span>Sample it.</li>
+                <li><span class="details__n">03</span>Define the evaluation methodology.</li>
+                <li><span class="details__n">04</span>Run the models on the sample.</li>
+                <li><span class="details__n">05</span>Analyse the results.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 04 Models */}
+      <section class="section section--tight" id="models" aria-labelledby="d-models">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('models').index} title={sec('models').title} />
+            <span class="label label--2xs">{modelIds.length} configurations · more to come</span>
+          </div>
+          <h2 id="d-models" class="visually-hidden">Models</h2>
+          <div class="frame details__models" data-reveal>
+            <table class="details__table">
+              <thead>
+                <tr>
+                  <th scope="col" class="label">model</th>
+                  <th scope="col" class="label">native inputs</th>
+                  <th scope="col" class="label">capability path</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modelIds.map((id) => (
+                  <tr style={`--series: var(${models[id].seriesVar})`}>
+                    <th scope="row"><span class="details__swatch" aria-hidden="true"></span>{models[id].name}</th>
+                    <td class="mono">{models[id].nativeModalities.join(' · ')}</td>
+                    <td>{models[id].usesMcp ? 'text + MCP specialists' : 'native multimodal'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* 05 MCP path */}
+      <section class="section section--tight" id="mcp-path" aria-labelledby="d-mcp">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('mcp-path').index} title={sec('mcp-path').title} />
+            <span class="label label--2xs">model → mcp → specialist → model</span>
+          </div>
+          <div class="grid">
+            <p id="d-mcp" class="prose" style="grid-column: 1 / span 5" data-reveal>
+              The text-only model emits a tool call; Eden AI's MCP gateway routes it to a
+              specialist and returns the result as text. The catalogue, {MCP_TOOL_COUNT} tools at
+              the time of writing, is discovered at runtime. Per-scenario tool paths are recorded
+              as they are run.
+              <a class="details__link" href={MCP_DOCS_URL} target="_blank" rel="noopener noreferrer">MCP server documentation ↗</a>
+            </p>
+            <div style="grid-column: 6 / span 7" data-reveal data-reveal-delay="0.1">
+              <ToolPathComparison data={data} scenarioId="s01" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 06 Native path */}
+      <section class="section section--tight" id="native-path" aria-labelledby="d-native">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('native-path').index} title={sec('native-path').title} />
+            <span class="label label--2xs">model → model</span>
+          </div>
+          <div class="grid">
+            <p id="d-native" class="prose" style="grid-column: 1 / span 6" data-reveal>
+              The multimodal model receives the binary asset in its context and answers without
+              tool traffic. Its latency is all model latency and its cost is a single line. This
+              is the reference the MCP path is measured against, not a baseline it must beat.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 07 Results */}
+      <section class="section section--tight" id="results" aria-labelledby="d-results">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('results').index} title={sec('results').title} />
+            <span class="placeholder-badge"><span class="dot dot--ember" aria-hidden="true"></span> no results yet</span>
+          </div>
+          <h2 id="d-results" class="visually-hidden">Results</h2>
+          <div class="grid">
+            <div style="grid-column: 1 / -1" data-reveal><BenchmarkComparison data={data} /></div>
+            <div style="grid-column: 1 / -1" data-reveal><ScenarioExplorer data={data} /></div>
+          </div>
+        </div>
+      </section>
+
+      {/* 08 Latency */}
+      <section class="section section--tight" id="latency" aria-labelledby="d-latency">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('latency').index} title={sec('latency').title} />
+            <span class="label label--2xs">recorded model time · recorded tool time · total wall-clock</span>
+          </div>
+          <div class="grid">
+            <p id="d-latency" class="prose" style="grid-column: 1 / span 5" data-reveal>
+              Three recorded quantities per scenario: model time, MCP/tool time and total wall-clock
+              latency. Round overhead is recorded separately, so the first two do not sum to the
+              third and are never presented as if they did.
+            </p>
+            <div style="grid-column: 6 / span 7" data-reveal data-reveal-delay="0.1"><LatencyChart data={data} /></div>
+          </div>
+        </div>
+      </section>
+
+      {/* 09 Cost */}
+      <section class="section section--tight" id="cost" aria-labelledby="d-cost">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('cost').index} title={sec('cost').title} />
+            <span class="label label--2xs">two lines, kept separate</span>
+          </div>
+          <div class="grid">
+            <p id="d-cost" class="prose" style="grid-column: 1 / span 5" data-reveal>
+              Gateway cost (model and routing) and expert-tool cost (the specialist) are separate
+              measurements and are never summed.
+            </p>
+            <div class="details__cards" style="grid-column: 7 / span 6" data-reveal data-reveal-delay="0.1">
+              <MetricCard label="gateway cost" unit="$" note="per scenario · model + routing" />
+              <MetricCard label="expert-tool cost" unit="$" note="per scenario · specialist" accent="ember" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 10 Tool usage */}
+      <section class="section section--tight" id="tool-usage" aria-labelledby="d-tools">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('tool-usage').index} title={sec('tool-usage').title} />
+            <span class="label label--2xs">what the model asked for</span>
+          </div>
+          <div class="grid">
+            <p id="d-tools" class="prose" style="grid-column: 1 / span 5" data-reveal>
+              Per scenario: how many MCP calls the text-only model made, how many failed, and how
+              many failures it recovered from.
+            </p>
+            <div class="details__cards details__cards--3" style="grid-column: 7 / span 6" data-reveal data-reveal-delay="0.1">
+              <MetricCard label="mcp calls" note="per scenario" accent="energy" />
+              <MetricCard label="tool failures" note="calls that returned an error" />
+              <MetricCard label="recovered" note="failures the model recovered from" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 11 Analysis */}
+      <section class="section section--tight" id="analysis" aria-labelledby="d-analysis">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('analysis').index} title={sec('analysis').title} />
+            <span class="label label--2xs">pending</span>
+          </div>
+          <div class="grid">
+            <p id="d-analysis" class="prose" style="grid-column: 1 / span 6" data-reveal>
+              Written once the measurements above exist. The framing is fixed already: native
+              capability versus MCP-mediated capability, what each path costs and where each is
+              appropriate, not which model wins.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 12 Limitations */}
+      <section class="section section--tight details__last" id="limitations" aria-labelledby="d-limitations">
+        <div class="container">
+          <div class="section__head">
+            <Marker index={sec('limitations').index} title={sec('limitations').title} />
+            <span class="label label--2xs">known, today</span>
+          </div>
+          <div class="grid">
+            <h2 id="d-limitations" class="visually-hidden">Limitations</h2>
+            <ol class="details__steps" style="grid-column: 1 / span 7" data-reveal>
+              <li><span class="details__n">01</span>The harness is still being debugged; recorded runs are not yet trusted enough to publish.</li>
+              <li><span class="details__n">02</span>Two model configurations so far; more comparisons are planned.</li>
+              <li><span class="details__n">03</span>No performance dataset selected yet, so no task-quality measurement.</li>
+              <li><span class="details__n">04</span>Scenario shells are hand-picked, not sampled from a benchmark.</li>
+            </ol>
+            <div class="details__actions" style="grid-column: 9 / span 4" data-reveal data-reveal-delay="0.1">
+              <a class="btn" href="/#bridge">Back to the bridge</a>
+              <a class="btn" href="/">Back to the core</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .details { position: relative; z-index: var(--z-content); }
+  .details__head {
+    display: grid;
+    gap: var(--space-5);
+    justify-items: start;
+    padding-top: calc(var(--space-9) + 2.5rem);
+    padding-bottom: var(--space-8);
+    border-bottom: 1px solid var(--line);
+  }
+  .details__head h1 { max-width: 20ch; }
+  .details__toc ol { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin-top: var(--space-3); }
+  .details__toc a {
+    display: inline-flex;
+    gap: 0.5em;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--fg-2);
+    padding: var(--space-1) 0;
+    border-bottom: 1px solid transparent;
+    transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+  .details__toc a:hover { color: var(--fg-0); border-bottom-color: var(--energy-500); }
+  .details__toc-index { color: var(--energy-500); }
+
+  .content { position: relative; }
+  .details .section__head { margin-bottom: clamp(var(--space-6), 5vh, var(--space-7)); }
+  .details__last { padding-bottom: clamp(var(--space-9), 14vh, var(--space-11)); }
+
+  .details__steps { display: grid; gap: var(--space-3); color: var(--fg-1); font-size: var(--text-sm); }
+  .details__steps li { display: grid; grid-template-columns: 2.4rem 1fr; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--line); }
+  .details__n { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--energy-500); }
+
+  .details__table { width: 100%; }
+  .details__table th, .details__table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); text-align: left; font-size: var(--text-sm); }
+  .details__table thead th { border-bottom-color: var(--line-strong); }
+  .details__table tbody tr:last-child th, .details__table tbody tr:last-child td { border-bottom: 0; }
+  .details__table tbody th { display: flex; align-items: center; gap: var(--space-3); font-weight: 500; color: var(--fg-0); }
+  .details__table td { color: var(--fg-1); }
+  .details__swatch { width: 10px; height: 10px; background: var(--series); }
+
+  .details__cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .details__cards--3 { grid-template-columns: repeat(3, 1fr); }
+  .details__link { display: block; margin-top: var(--space-3); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-1); text-decoration: underline; text-decoration-color: var(--line-energy); }
+  .details__link:hover { color: var(--energy-300); }
+  .details__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-content: start; }
+
+  @media (max-width: 640px) {
+    .details__cards, .details__cards--3 { grid-template-columns: 1fr; }
+  }
+</style>

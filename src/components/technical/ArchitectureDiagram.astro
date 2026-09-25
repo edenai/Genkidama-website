@@ -1,42 +1,46 @@
 ---
 /**
- * Model → MCP gateway → specialists, drawn as a routing schematic rather than
- * boxes-and-arrows. Built from the capability catalogue. Carriers animate
- * (dash flow) unless motion is reduced.
+ * Model → MCP gateway → capability ecosystem, drawn as a routing schematic
+ * rather than boxes-and-arrows. The fan targets are capability families from
+ * the MCP catalogue (not individual tools: 39 animated carriers would be
+ * noise). The tools themselves are listed as static DOM labels below, and on
+ * narrow screens the schematic gives way to a stacked MODEL → MCP → families
+ * composition so the hierarchy stays readable.
  */
-import { capabilities } from '@data/capabilities';
+import { mcpFamilies, MCP_TOOL_COUNT, mcpSnapshotDate } from '@data/mcpCatalog';
 
 const W = 760;
 const H = 420;
 const modelX = 70;
 const gateX = 330;
-const toolX = 620;
+const toolX = 590;
 const cy = H / 2;
-const n = capabilities.length;
-const toolYs = capabilities.map((_, i) => 40 + (i * (H - 80)) / (n - 1));
+const n = mcpFamilies.length;
+const familyYs = mcpFamilies.map((_, i) => 40 + (i * (H - 80)) / (n - 1));
 ---
 
 <figure class="arch frame">
   <figcaption class="frame__bar">
     <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> architecture</span>
-    <span class="label label--2xs">model · mcp gateway · {n} specialists</span>
+    <span class="label label--2xs">model · mcp · {n} families · {MCP_TOOL_COUNT} tools</span>
   </figcaption>
+
   <svg class="arch__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="arch-title arch-desc">
     <title id="arch-title">Genkidama architecture</title>
     <desc id="arch-desc">
-      A text-only model connects to Eden AI's MCP gateway, which routes tool calls to {n} specialist capabilities and returns results to the model.
+      A text-only model connects to Eden AI's MCP gateway, which routes tool calls to {MCP_TOOL_COUNT} expert-model tools grouped in {n} capability families, and returns results to the model.
     </desc>
 
     <!-- model -> gateway request + return -->
     <path class="arch__carrier arch__carrier--req" d={`M ${modelX + 46} ${cy - 6} H ${gateX - 46}`} />
     <path class="arch__carrier arch__carrier--res" d={`M ${gateX - 46} ${cy + 6} H ${modelX + 46}`} />
 
-    <!-- gateway -> tools fan -->
-    {toolYs.map((y, i) => (
+    <!-- gateway -> families fan -->
+    {familyYs.map((y, i) => (
       <path
         class="arch__carrier arch__carrier--fan"
         style={`--d:${i * 0.18}s`}
-        d={`M ${gateX + 46} ${cy} C ${gateX + 140} ${cy}, ${toolX - 140} ${y}, ${toolX - 10} ${y}`}
+        d={`M ${gateX + 46} ${cy} C ${gateX + 130} ${cy}, ${toolX - 130} ${y}, ${toolX - 10} ${y}`}
       />
     ))}
 
@@ -56,12 +60,13 @@ const toolYs = capabilities.map((_, i) => 40 + (i * (H - 80)) / (n - 1));
       <text class="arch__sub" y="70">eden ai gateway</text>
     </g>
 
-    <!-- tools -->
-    {capabilities.map((c, i) => (
-      <g class="arch__node arch__node--tool" transform={`translate(${toolX} ${toolYs[i]})`} style={`--accent:${c.accent}`}>
+    <!-- capability families -->
+    {mcpFamilies.map((f, i) => (
+      <g class="arch__node arch__node--tool" transform={`translate(${toolX} ${familyYs[i]})`} style={`--accent:${f.accent}`}>
         <circle r="4" class="arch__tool-dot" />
-        <text class="arch__tool-glyph" x="14" y="4">{c.glyph}</text>
-        <text class="arch__tool-name" x="44" y="4">{c.name.toUpperCase()}</text>
+        <text class="arch__tool-glyph" x="14" y="4">{f.glyph}</text>
+        <text class="arch__tool-name" x="44" y="2">{f.name.toUpperCase()}</text>
+        <text class="arch__tool-count" x="44" y="15">{f.tools.length} {f.tools.length === 1 ? 'tool' : 'tools'}</text>
       </g>
     ))}
 
@@ -69,6 +74,34 @@ const toolYs = capabilities.map((_, i) => 40 + (i * (H - 80)) / (n - 1));
     <text class="arch__annot" x={modelX + 52} y={cy - 12}>tool_call</text>
     <text class="arch__annot arch__annot--ember" x={modelX + 52} y={cy + 22}>result</text>
   </svg>
+
+  <!-- Narrow screens: the same hierarchy, stacked. -->
+  <div class="arch__stack" aria-hidden="true">
+    <div class="arch__stack-node"><span class="arch__stack-title">MODEL</span><span class="label label--2xs">text-only</span></div>
+    <span class="arch__stack-edge arch__stack-edge--req">tool_call ↓ · ↑ result</span>
+    <div class="arch__stack-node arch__stack-node--gate"><span class="arch__stack-title">MCP</span><span class="label label--2xs">eden ai gateway</span></div>
+    <span class="arch__stack-edge">{n} capability families · {MCP_TOOL_COUNT} tools</span>
+  </div>
+
+  <!-- The catalogue, as static labels: one row per family. -->
+  <dl class="arch__families">
+    {mcpFamilies.map((f) => (
+      <div class="arch__family" style={`--accent:${f.accent}`}>
+        <dt class="arch__family-head">
+          <span class="arch__family-dot" aria-hidden="true"></span>
+          <span class="arch__family-name">{f.name}</span>
+          <span class="arch__family-count label label--2xs">{f.tools.length}</span>
+        </dt>
+        <dd class="arch__family-tools">
+          {f.tools.map((t) => <span class="arch__tool" title={t.name}>{t.label}</span>)}
+        </dd>
+      </div>
+    ))}
+  </dl>
+  <div class="arch__foot label label--2xs">
+    <span>catalogue discovered at runtime via tools/list</span>
+    <span>snapshot {mcpSnapshotDate}</span>
+  </div>
 </figure>
 
 <style>
@@ -105,11 +138,83 @@ const toolYs = capabilities.map((_, i) => 40 + (i * (H - 80)) / (n - 1));
   .arch__tool-dot { fill: var(--accent, var(--energy-500)); }
   .arch__tool-glyph { font-family: var(--font-mono); font-size: 11px; fill: var(--accent, var(--energy-500)); letter-spacing: 0.1em; }
   .arch__tool-name { font-family: var(--font-mono); font-size: 11px; fill: var(--fg-1); letter-spacing: 0.14em; }
+  .arch__tool-count { font-family: var(--font-mono); font-size: 9px; fill: var(--fg-3); letter-spacing: 0.1em; }
   .arch__annot { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; fill: var(--fg-2); }
   .arch__annot--ember { fill: var(--ember); }
+
+  /* Stacked composition (narrow screens only) */
+  .arch__stack { display: none; }
+  .arch__stack-node {
+    display: grid;
+    justify-items: center;
+    gap: 0.2rem;
+    padding: var(--space-3) var(--space-5);
+    border: 1px solid var(--fg-1);
+    background: var(--bg-0);
+  }
+  .arch__stack-node--gate { border-color: var(--energy-500); box-shadow: var(--glow-sm); }
+  .arch__stack-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: 0.08em; color: var(--fg-0); }
+  .arch__stack-edge {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--fg-2);
+  }
+  .arch__stack-edge::before { content: ''; width: 1px; height: 18px; background: var(--energy-700); }
+  .arch__stack-edge--req { color: var(--energy-500); }
+
+  /* Families */
+  .arch__families {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    margin: 0;
+    border-top: 1px solid var(--line);
+  }
+  .arch__family {
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+    padding: var(--space-4);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .arch__family:nth-child(4n) { border-right: 0; }
+  .arch__family:nth-last-child(-n + 4) { border-bottom: 0; }
+  .arch__family-head { display: flex; align-items: baseline; gap: var(--space-2); }
+  .arch__family-dot { width: 6px; height: 6px; background: var(--accent); align-self: center; }
+  .arch__family-name { font-family: var(--font-display); font-weight: 600; font-size: var(--text-sm); letter-spacing: 0.04em; color: var(--fg-0); }
+  .arch__family-count { margin-left: auto; color: var(--fg-3); }
+  .arch__family-tools { margin: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; }
+  .arch__tool { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; color: var(--fg-2); white-space: nowrap; }
+  .arch__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--line);
+    color: var(--fg-3);
+  }
 
   @keyframes arch-spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) {
     .arch__carrier, .arch__ring--inner { animation: none; }
+  }
+  @media (max-width: 899px) {
+    .arch__families { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .arch__family:nth-child(4n) { border-right: 1px solid var(--line); }
+    .arch__family:nth-child(2n) { border-right: 0; }
+    .arch__family:nth-last-child(-n + 4) { border-bottom: 1px solid var(--line); }
+    .arch__family:nth-last-child(-n + 2) { border-bottom: 0; }
+  }
+  @media (max-width: 640px) {
+    .arch__svg { display: none; }
+    .arch__stack { display: grid; justify-items: center; padding: var(--space-5) var(--space-4) var(--space-3); }
+    .arch__foot { flex-direction: column; gap: var(--space-1); }
   }
 </style>
