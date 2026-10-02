@@ -62,6 +62,7 @@ export class EnergyStreams implements Subsystem {
         uniforms: {
           uTime: { value: 0 },
           uActive: { value: 0 },
+          uReach: { value: 1 },
           uPhaseOff: { value: i * 0.17 },
           uStart: { value: new THREE.Vector3() },
           uCtrl: { value: new THREE.Vector3() },
@@ -84,18 +85,23 @@ export class EnergyStreams implements Subsystem {
   }
 
   update(_dt: number, live: LiveState) {
+    const { params } = live;
     for (let i = 0; i < CAPABILITY_COUNT; i++) {
       const m = this.meshes[i]!;
       const u = m.material.uniforms;
-      streamPath(live.nodePositions[i]!, live.params.nodeSpread, live.ringRadius, live.coreRadius, this.scratch);
+      streamPath(live.nodePositions[i]!, params.nodeSpread, live.ringRadius, live.coreRadius, this.scratch);
       (u.uStart!.value as THREE.Vector3).copy(this.scratch.start);
       (u.uCtrl!.value as THREE.Vector3).copy(this.scratch.ctrl);
       (u.uEnd!.value as THREE.Vector3).copy(this.scratch.end);
+      // A ribbon is lit by tool-call traffic on it, or by the core probing
+      // outward (`probe`); `reach` decides how far along the path it exists.
+      const active = Math.max(live.stream[i]!, params.probe);
       u.uTime!.value = live.time;
-      u.uActive!.value = live.stream[i]! * live.params.nodeAlpha;
+      u.uActive!.value = active * params.nodeAlpha;
+      u.uReach!.value = params.reach;
       u.uAspect!.value = live.aspect;
-      u.uWidth!.value = 0.0035 + live.stream[i]! * 0.004;
-      m.visible = live.stream[i]! > 0.01 && live.params.nodeAlpha > 0.01;
+      u.uWidth!.value = 0.0035 + active * 0.004;
+      m.visible = active > 0.01 && params.nodeAlpha > 0.01 && params.reach > 0.01;
     }
   }
 

@@ -5,7 +5,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 import { palette, geometry, bloom as bloomCfg, type QualityProfile } from '@config/visual';
-import { PHASES, toolCallCycle, type Phase } from '@config/animation';
+import { PHASES, toolCallCycle, gathering, type Phase } from '@config/animation';
 import { capabilities, CAPABILITY_COUNT } from '@data/capabilities';
 
 import { SceneState } from './state';
@@ -70,6 +70,8 @@ export class GenkidamaScene implements GenkidamaHandle {
   private width = 1;
   private height = 1;
   private dpr: number;
+  /** Pixel ratio the quality tier asked for; adaptation never exceeds it. */
+  private readonly baseDpr: number;
 
   // Scripted tool-call scheduler
   private schedulerClock = 0;
@@ -89,6 +91,7 @@ export class GenkidamaScene implements GenkidamaHandle {
   constructor(private readonly container: HTMLElement, private readonly options: GenkidamaSceneOptions) {
     const q = options.quality;
     this.dpr = Math.min(window.devicePixelRatio || 1, q.maxDpr);
+    this.baseDpr = this.dpr;
     this.bloomEnabled = q.bloom;
 
     this.renderer = new THREE.WebGLRenderer({
@@ -297,7 +300,14 @@ export class GenkidamaScene implements GenkidamaHandle {
     this.composer = null;
   }
 
-  /** Step down quality if the frame budget is consistently blown. */
+  /**
+   * Step down quality if the frame budget is consistently blown, and step
+   * the pixel ratio back up when there is clear headroom again, so a heavy
+   * passage does not leave the rest of the visit (the hero included) at a
+   * lower resolution. Bloom is the exception: once torn down it stays down,
+   * because rebuilding the composer mid-scroll would compile shaders at
+   * first draw, the stall `precompile` exists to avoid.
+   */
   private adapt(dt: number) {
     this.frameAccum += dt;
     this.frameCount++;
@@ -313,6 +323,10 @@ export class GenkidamaScene implements GenkidamaHandle {
         this.bloomEnabled = false;
         this.teardownPostProcessing();
       }
+    } else if (this.fps > 56 && this.dpr < this.baseDpr) {
+      // Same step, same place in the frame (before the draw) as the step-down.
+      this.dpr = Math.min(this.baseDpr, this.dpr + 0.25);
+      this.resize();
     }
   }
 
@@ -348,8 +362,12 @@ export class GenkidamaScene implements GenkidamaHandle {
 
     // Adapt before drawing: a quality step-down resizes the drawing buffer
     // (which clears it), so it must happen before this frame's draw, never
-    // after it.
-    this.adapt(rawDt);
+    // after it. Not while idling at half rate behind the content: that
+    // halving is deliberate, but measured here it reads as a blown frame
+    // budget, and the step-downs it triggered (resolution, then bloom) used
+    // to follow the visitor back to the hero, so the core returned without
+    // its glow.
+    if (this.dim <= 0.9) this.adapt(rawDt);
 
     this.state.update(dt);
     const p = this.state.current;
@@ -378,6 +396,7 @@ export class GenkidamaScene implements GenkidamaHandle {
     this.live.mouseStrength = this.interaction.strength * (0.6 + p.coreEnergy * 0.5);
 
     this.runScheduler(dt);
+    this.runSurge();
 
     this.core.update(dt, this.live);
     this.ambient.update(dt, this.live);
@@ -421,6 +440,11 @@ export class GenkidamaScene implements GenkidamaHandle {
       this.fireNext(1);
       return;
     }
+    // Silence (the Gathering's first beat): no scripted traffic at all.
+    if (this.state.current.traffic < 0.75) {
+      this.schedulerNext = this.schedulerClock + 0.25;
+      return;
+    }
     switch (phase) {
       case 'composition':
         this.schedulerNext = this.schedulerClock + period;
@@ -436,6 +460,28 @@ export class GenkidamaScene implements GenkidamaHandle {
         break;
       default:
         this.schedulerNext = this.schedulerClock + 0.5;
+    }
+  }
+
+  /**
+   * The surge: the one scripted event of the Gathering. When the last phase's
+   * progress crosses `gathering.surgeAt` going up, every capability returns a
+   * result at once; each landing adds its usual energy pulse to the core.
+   * Re-armed when progress falls back below the silence, so scrolling back
+   * and forth replays it deterministically.
+   */
+  private surged = false;
+  private runSurge() {
+    const t = this.state.gatheringT;
+    if (!this.surged && t >= gathering.surgeAt) {
+      this.surged = true;
+      for (let i = 0; i < CAPABILITY_COUNT; i++) {
+        this.pulses.fire(i, 'result');
+        this.state.activate(i, false);
+      }
+      this.state.pulse(0.4);
+    } else if (this.surged && t < gathering.silenceEnd) {
+      this.surged = false;
     }
   }
 

@@ -33,15 +33,15 @@ ScrollTrigger, plain CSS with design tokens. No UI framework.
 
 ```
 src/
-  pages/index.astro              narrative page: Stage · Hero · Story · 01–04
-  pages/details.astro            experiments (V2, unlinked from the main flow): 12 sections, null metrics
+  pages/index.astro              narrative page: Stage · Hero · Story (6 phases, the last is the Gathering) · 01–05
+  pages/details.astro            experiments: setup · OCR (MMMU-Pro) · speech (Spoken-SQuAD) · across both · complete runs · observations · method
   layouts/BaseLayout.astro       fonts, tokens, nav, rail, footer, animation boot
   components/
     layout/                      Nav, Rail (section index), Footer
     visual/                      Stage (WebGL island), HeroWordmark, EnergyReadout, ScrollCue, Marker
-    sections/                    Hero, Story (6 phases), Idea, Gap, Bridge (incl. one-call trace), NextProblem
+    sections/                    Hero, Story (6 phases), Idea, Gap, Bridge (incl. one-call trace), NextProblem, Experiments (entry to /details)
     technical/                   CodeBlock, TerminalBlock, ToolCallTrace, ArchitectureDiagram, MetricCard, ComparisonPanel
-    benchmark/                   BenchmarkComparison, LatencyChart, ToolPathComparison, ScenarioExplorer
+    experiments/                 Details charts: ReturnLink, ArmLegend, SetupDiagram, ScoreCompare, LatencyChart, TokenChart, CostChart, ToolUsage, CrossMatrix, FullRunChart
   scenes/genkidama/
     GenkidamaScene.ts            renderer, loop, camera, bloom, public API (GenkidamaHandle)
     state.ts                     progress → keyframed params, activations, smoothing (no Three.js)
@@ -51,8 +51,10 @@ src/
     fallback2d.ts                static canvas fallback when WebGL is unavailable
     registry.ts                  rendezvous between the island and the scroll choreography
     shaders/*.glsl               core, halo, particles, nodes, ring, stream, pulses, noise
-  animations/scroll/             GSAP: story sync, hero wordmark, reveals, rail
-  data/                          capabilities, navigation, mcpCatalog (39 tools in 8 families), benchmark schema + placeholder shell
+  animations/scroll/             GSAP: story sync, hero wordmark, the Gathering (phase 06 text), reveals, rail
+  data/                          capabilities, navigation, mcpCatalog (39 tools in 8 families)
+  data/experiments/              showcase.json (generated, see below) + typed accessors and formatters
+scripts/curate-showcase.mjs      generates data/experiments/showcase.json from the comparison repository
   config/                        visual constants, quality profiles, animation keyframes
   styles/                        tokens · typography · motion · global
 ```
@@ -73,10 +75,29 @@ scene.onTick(info => …);                 // progress, phase, energy, fps
 Keyframes for every phase live in `src/config/animation.ts`; capability nodes
 in `src/data/capabilities.ts`; quality tiers in `src/config/visual.ts`.
 
-### Benchmark data
+### Experiments data
 
-`src/data/benchmark.ts` defines the dataset schema (`BenchmarkDataset`,
-`Scenario`, `ScenarioMetrics`) and a placeholder shell whose metrics are all
-`null`. Benchmark components render skeleton states for `null` and real
-values otherwise. Replace `benchmarkPlaceholder` in `pages/details.astro` with a
-loader once measurements exist. No statistics are hardcoded anywhere.
+The Details page reads `src/data/experiments/showcase.json`, which is
+generated, never edited by hand:
+
+```sh
+node scripts/curate-showcase.mjs [path/to/combined_showcase_v1]
+```
+
+The script reads the sibling repository `Genkidama-project-comparisons`
+(`results/raw/combined_showcase_v1`: manifests, `selection.jsonl`,
+`full_run_context.json` and both `evaluation.jsonl` files), recomputes every
+aggregate with the definitions of that repository's
+`benchmark/combined_showcase/analysis.py`, and asserts them against the values
+the executed `notebooks/combined_showcase_analysis.ipynb` printed. A mismatch
+fails the script. Missing values stay `null`; the two cost fields (gateway
+charge, specialist-tool charge) stay separate; recorded model time and
+recorded MCP/tool time are never presented as summing to the wall-clock total.
+The showcase is a curated subset (50 of 100 tasks per benchmark, selected by
+rule where DeepSeek + MCP did at least as well as Gemini); the page says so and
+shows the complete runs alongside.
+
+The landing page's Experiments section reads its counts from the same file,
+so the two pages cannot drift apart. The earlier placeholder schema
+(`data/benchmark.ts`) and skeleton components (`components/benchmark/`) were
+removed once the real data landed.

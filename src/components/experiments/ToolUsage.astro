@@ -1,0 +1,81 @@
+---
+/**
+ * What the MCP route actually did with the catalogue on one benchmark: the
+ * tools the model chose, how often, the most frequent sequences, errors and
+ * recoveries. Zero calls would have meant answering without perceiving the
+ * input; the counts show that did not happen. The native route has no tools.
+ */
+import { experiments, type BenchmarkId } from '@data/experiments';
+import { armFill, armInk } from './chart';
+
+interface Props { bench: BenchmarkId }
+const { bench } = Astro.props;
+const b = experiments.benchmarks[bench];
+const t = b.toolUsage;
+const arms = experiments.arms;
+const maxCalls = Math.max(...Object.values(t.callsPerTool));
+---
+
+<figure class="tools frame">
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> tool calls</span>
+    <span class="label label--2xs">{b.mcpToolCount}-tool catalogue · chosen by the model</span>
+  </figcaption>
+  <div class="tools__body">
+    <div class="tools__arm" style={`--c: ${armFill('deepseek_mcp')}; --ink: ${armInk.deepseek_mcp}`}>
+      <div class="tools__head"><span class="tools__swatch" aria-hidden="true"></span><span class="tools__name">{arms.deepseek_mcp.label}</span></div>
+      <dl class="tools__facts">
+        <div><dt class="label label--2xs">runs that called a tool</dt><dd class="num">{t.runsWithMcpCalls} / {t.runs}</dd></div>
+        <div><dt class="label label--2xs">calls per run</dt><dd class="num">{t.meanCallsPerRun?.toFixed(2)}</dd></div>
+        <div><dt class="label label--2xs">capability · utility calls</dt><dd class="num">{t.capabilityCalls} · {t.utilityCalls}</dd></div>
+        <div><dt class="label label--2xs">tool execution errors</dt><dd class="num">{t.toolExecutionErrors}</dd></div>
+        <div><dt class="label label--2xs">runs that recovered from one</dt><dd class="num">{t.runsWithRecovery}</dd></div>
+      </dl>
+      <ol class="tools__calls" aria-label="Calls per tool">
+        {Object.entries(t.callsPerTool).map(([tool, n]) => (
+          <li class="tools__call">
+            <span class="mono tools__tool">{tool}</span>
+            <span class="tools__track"><span class="tools__bar" style={`width: ${(n / maxCalls) * 100}%`}></span></span>
+            <span class="num tools__n">{n}</span>
+          </li>
+        ))}
+      </ol>
+      <div class="tools__seq">
+        <span class="label label--2xs">most frequent sequences</span>
+        <ol>
+          {t.topSequences.slice(0, 3).map((s) => (
+            <li><span class="mono">{s.sequence}</span><span class="num tools__n">{s.runs} runs</span></li>
+          ))}
+        </ol>
+      </div>
+    </div>
+    <div class="tools__arm tools__arm--none" style={`--c: ${armFill('gemini_native')}`}>
+      <div class="tools__head"><span class="tools__swatch" aria-hidden="true"></span><span class="tools__name">{arms.gemini_native.label}</span></div>
+      <p class="label label--2xs tools__none">no tools offered · the input is read natively</p>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .tools__body { display: grid; gap: var(--space-4); padding: var(--space-4); }
+  .tools__arm { display: grid; gap: var(--space-3); }
+  .tools__arm--none { padding-top: var(--space-3); border-top: 1px solid var(--line); }
+  .tools__head { display: flex; align-items: center; gap: var(--space-2); }
+  .tools__swatch { width: 10px; height: 10px; background: var(--c); }
+  .tools__name { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-0); }
+  .tools__facts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; }
+  .tools__facts div { display: grid; gap: 0.15rem; }
+  .tools__facts dt { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .tools__facts dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--fg-0); }
+  .tools__calls { display: grid; gap: var(--space-1); }
+  .tools__call { display: grid; grid-template-columns: 11rem minmax(0, 1fr) 3rem; align-items: center; gap: var(--space-3); font-size: var(--text-xs); }
+  .tools__tool { color: var(--fg-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tools__track { height: 6px; background: var(--bg-2); }
+  .tools__bar { display: block; height: 100%; background: var(--c); min-width: 1px; }
+  .tools__n { color: var(--ink, var(--fg-1)); text-align: right; font-family: var(--font-mono); }
+  .tools__seq { display: grid; gap: var(--space-2); }
+  .tools__seq ol { display: grid; gap: var(--space-1); }
+  .tools__seq li { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--text-xs); color: var(--fg-1); border-top: 1px solid var(--line); padding-top: var(--space-1); }
+  .tools__none { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  @media (max-width: 640px) { .tools__call { grid-template-columns: 7rem minmax(0, 1fr) 2.5rem; } }
+</style>

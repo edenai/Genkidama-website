@@ -52,15 +52,12 @@ const lines: TerminalLine[] = [
         <h2 id="bridge-title" class="display display--lg">One protocol between the model and everything it lacks.</h2>
       </div>
       <div style="grid-column: 6 / span 6" data-reveal data-reveal-delay="0.1">
+        {/* One paragraph: what MCP is and what Eden AI's server exposes. The
+            catalogue itself is listed in the diagram above. */}
         <p class="prose">
-          MCP is a standard interface between a model and external tools. Instead of building
-          every capability into the model, an agent discovers the tools a server exposes, calls
-          the one it needs and reads the result back as context.
-        </p>
-        <p class="prose">
-          Eden AI's hosted MCP server exposes its expert models this way: one tool per feature,
-          plus a few utilities. OCR, image analysis, web search, speech, translation and the rest
-          of the catalogue become callable by any MCP-capable agent, and the catalogue is
+          MCP is a standard interface between a model and external tools: an agent discovers the
+          tools a server exposes, calls the one it needs and reads the result back as context.
+          Eden AI's hosted MCP server exposes its expert models this way, one tool per feature,
           discovered at runtime rather than hardcoded.
         </p>
         <ul class="bridge__facts">
@@ -75,14 +72,11 @@ const lines: TerminalLine[] = [
 
       <div class="rule" style="grid-column: 1 / -1" data-reveal="rule"></div>
 
-      {/* One call, out and back: what actually happens during a tool call. */}
+      {/* One worked example. The trace, request and session log show the round
+          trip; the story's phase 04 already narrated it. */}
       <div style="grid-column: 1 / span 4" data-reveal>
-        <h3 class="display display--md">One call, out and back.</h3>
-        <p class="prose" style="margin-top: var(--space-4)">
-          The model decides it needs a capability and emits a tool call. The gateway routes it
-          to the specialist; the result returns as text, and the model keeps reasoning with it.
-          One example, through OCR:
-        </p>
+        <h3 class="display display--md">One example, through OCR.</h3>
+        <span class="label label--2xs bridge__note">illustrative · not a measurement</span>
       </div>
 
       <div style="grid-column: 5 / span 3" data-reveal data-reveal-delay="0.1">
@@ -100,6 +94,7 @@ const lines: TerminalLine[] = [
 <style>
   .bridge__facts { display: grid; gap: var(--space-2); margin-top: var(--space-6); max-width: var(--measure); }
   .bridge__facts li { display: grid; grid-template-columns: 8rem 1fr; padding: var(--space-2) 0; border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--fg-0); }
+  .bridge__note { display: block; margin-top: var(--space-3); color: var(--fg-3); }
   .bridge__doc {
     display: inline-flex;
     gap: 0.5em;

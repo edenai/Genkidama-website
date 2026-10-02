@@ -1,0 +1,136 @@
+---
+/**
+ * The experiment in one picture: one task, two routes, one comparison, on
+ * two benchmarks. Drawn with the Bridge's schematic language (hairline
+ * nodes, dashed carriers). Narrow screens get the same hierarchy stacked.
+ */
+import { experiments } from '@data/experiments';
+import { armFill, armInk } from './chart';
+
+const ocr = experiments.benchmarks.mmmu_pro;
+const sp = experiments.benchmarks.spoken_squad;
+const arms = experiments.arms;
+const tools = ocr.mcpToolCount;
+
+const W = 800, H = 500;
+const cx = W / 2;
+const lx = 200, rx = 575; // branch columns (right one pulled in so its annotations fit)
+const yTask = 44, yModel = 150, yMid = 250, yCmp = 392, yBench = 462;
+---
+
+<figure class="setup frame">
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> experiment design</span>
+    <span class="label label--2xs">one task · two routes · {ocr.sampleCount} + {sp.sampleCount} tasks</span>
+  </figcaption>
+
+  <svg class="setup__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="setup-title setup-desc">
+    <title id="setup-title">Experiment design</title>
+    <desc id="setup-desc">
+      Each task is given, with the same prompt, asset, policy and scoring, to two systems: {arms.deepseek_mcp.label}, a text-only model that reaches the image or audio only through Eden AI's MCP tools, and {arms.gemini_native.label}, a natively multimodal model with no tools. Results are compared on {ocr.sampleCount} OCR tasks from {ocr.dataset} and {sp.sampleCount} speech questions from {sp.dataset}.
+    </desc>
+
+    {/* carriers: task → each route → comparison */}
+    <path class="setup__carrier" d={`M ${cx} ${yTask + 30} V 92 H ${lx} V ${yModel - 26}`} style={`--c: ${armFill('deepseek_mcp')}`} />
+    <path class="setup__carrier" d={`M ${cx} ${yTask + 30} V 92 H ${rx} V ${yModel - 26}`} style={`--c: ${armFill('gemini_native')}`} />
+    <path class="setup__carrier" d={`M ${lx} ${yModel + 26} V ${yMid - 30}`} style={`--c: ${armFill('deepseek_mcp')}`} />
+    <path class="setup__carrier" d={`M ${rx} ${yModel + 26} V ${yMid - 30}`} style={`--c: ${armFill('gemini_native')}`} />
+    <path class="setup__carrier" d={`M ${lx} ${yMid + 30} V 330 H ${cx} V ${yCmp - 26}`} style={`--c: ${armFill('deepseek_mcp')}`} />
+    <path class="setup__carrier" d={`M ${rx} ${yMid + 30} V 330 H ${cx} V ${yCmp - 26}`} style={`--c: ${armFill('gemini_native')}`} />
+    <path class="setup__carrier setup__carrier--quiet" d={`M ${cx - 170} ${yCmp + 26} V ${yBench - 16} M ${cx + 170} ${yCmp + 26} V ${yBench - 16}`} />
+
+    {/* same task */}
+    <g transform={`translate(${cx} ${yTask})`}>
+      <rect class="setup__box" x="-230" y="-30" width="460" height="60" />
+      <text class="setup__title" y="-4">SAME TASK</text>
+      <text class="setup__sub" y="14">same prompt · same asset · same policy · same scoring</text>
+    </g>
+
+    {/* route a: deepseek + mcp */}
+    <g transform={`translate(${lx} ${yModel})`} style={`--c: ${armFill('deepseek_mcp')}; --ink: ${armInk.deepseek_mcp}`}>
+      <rect class="setup__box setup__box--arm" x="-135" y="-26" width="270" height="52" />
+      <text class="setup__title setup__title--arm" y="-3">DEEPSEEK + MCP</text>
+      <text class="setup__sub" y="14">{arms.deepseek_mcp.model} · text only</text>
+    </g>
+    <g transform={`translate(${lx} ${yMid})`} style={`--c: ${armFill('deepseek_mcp')}`}>
+      <circle class="setup__ring" r="30" />
+      <circle class="setup__ring setup__ring--inner" r="21" />
+      <circle class="setup__core" r="4" />
+      <text class="setup__sub setup__sub--left" x="42" y="-8">EDEN AI MCP</text>
+      <text class="setup__sub setup__sub--left setup__sub--dim" x="42" y="8">{tools} tools offered, model chooses</text>
+      <text class="setup__sub setup__sub--left setup__sub--dim" x="42" y="24">ocr · speech-to-text · …</text>
+    </g>
+
+    {/* route b: gemini native */}
+    <g transform={`translate(${rx} ${yModel})`} style={`--c: ${armFill('gemini_native')}; --ink: ${armInk.gemini_native}`}>
+      <rect class="setup__box setup__box--arm" x="-135" y="-26" width="270" height="52" />
+      <text class="setup__title setup__title--arm" y="-3">GEMINI NATIVE</text>
+      <text class="setup__sub" y="14">{arms.gemini_native.model} · multimodal</text>
+    </g>
+    <g transform={`translate(${rx} ${yMid})`} style={`--c: ${armFill('gemini_native')}`}>
+      <rect class="setup__native" x="-30" y="-22" width="60" height="44" />
+      <text class="setup__sub setup__sub--left" x="42" y="-8">NATIVE INPUT</text>
+      <text class="setup__sub setup__sub--left setup__sub--dim" x="42" y="8">image / audio content part</text>
+      <text class="setup__sub setup__sub--left setup__sub--dim" x="42" y="24">no tools</text>
+    </g>
+
+    {/* comparison */}
+    <g transform={`translate(${cx} ${yCmp})`}>
+      <rect class="setup__box" x="-160" y="-26" width="320" height="52" />
+      <text class="setup__title" y="-3">COMPARISON</text>
+      <text class="setup__sub" y="14">score · latency · tokens · cost</text>
+    </g>
+    <g class="setup__bench" transform={`translate(${cx - 170} ${yBench})`}>
+      <text class="setup__benchname" y="0">OCR / VISION</text>
+      <text class="setup__sub" y="16">{ocr.dataset} · {ocr.sampleCount} tasks</text>
+    </g>
+    <g class="setup__bench" transform={`translate(${cx + 170} ${yBench})`}>
+      <text class="setup__benchname" y="0">SPEECH</text>
+      <text class="setup__sub" y="16">{sp.dataset} · {sp.sampleCount} questions</text>
+    </g>
+  </svg>
+
+  {/* Narrow screens: stacked */}
+  <ol class="setup__stack" aria-hidden="true">
+    <li class="setup__snode"><span class="setup__stitle">SAME TASK</span><span class="label label--2xs">same prompt · asset · policy · scoring</span></li>
+    <li class="setup__sedge"><span></span><span></span></li>
+    <li class="setup__sarms">
+      <div class="setup__snode setup__snode--arm" style={`--c: ${armFill('deepseek_mcp')}`}><span class="setup__stitle">DEEPSEEK + MCP</span><span class="label label--2xs">text only · Eden AI MCP · {tools} tools</span></div>
+      <div class="setup__snode setup__snode--arm" style={`--c: ${armFill('gemini_native')}`}><span class="setup__stitle">GEMINI NATIVE</span><span class="label label--2xs">native image / audio · no tools</span></div>
+    </li>
+    <li class="setup__sedge"><span></span><span></span></li>
+    <li class="setup__snode"><span class="setup__stitle">COMPARISON</span><span class="label label--2xs">OCR {ocr.sampleCount} tasks · speech {sp.sampleCount} questions</span></li>
+  </ol>
+</figure>
+
+<style>
+  .setup__svg { width: 100%; height: auto; display: block; padding: var(--space-4) var(--space-4) var(--space-3); }
+  .setup__carrier { fill: none; stroke: var(--c, var(--line-strong)); stroke-width: 1; stroke-dasharray: 4 10; opacity: 0.8; animation: dash-flow 2.4s linear infinite; }
+  .setup__carrier--quiet { stroke: var(--line-strong); stroke-dasharray: none; animation: none; }
+  .setup__box { fill: var(--bg-0); stroke: var(--fg-1); stroke-width: 1; }
+  .setup__box--arm { stroke: var(--c); }
+  .setup__title { font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: 0.08em; fill: var(--fg-0); text-anchor: middle; }
+  .setup__title--arm { fill: var(--ink); }
+  .setup__sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; fill: var(--fg-2); text-anchor: middle; }
+  .setup__sub--left { text-anchor: start; }
+  .setup__sub--dim { fill: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .setup__ring { fill: none; stroke: var(--c); stroke-width: 1; opacity: 0.85; }
+  .setup__ring--inner { stroke-dasharray: 2 6; opacity: 0.6; animation: setup-spin 24s linear infinite; transform-origin: center; transform-box: fill-box; }
+  .setup__core { fill: var(--energy-100); filter: drop-shadow(0 0 6px var(--energy-500)); }
+  .setup__native { fill: var(--bg-0); stroke: var(--c); stroke-width: 1; }
+  .setup__benchname { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; fill: var(--fg-0); text-anchor: middle; }
+
+  .setup__stack { display: none; }
+  .setup__snode { display: grid; justify-items: center; gap: 0.2rem; padding: var(--space-3) var(--space-4); border: 1px solid var(--fg-1); background: var(--bg-0); text-align: center; }
+  .setup__snode--arm { border-color: var(--c); }
+  .setup__stitle { font-family: var(--font-display); font-weight: 600; font-size: 14px; letter-spacing: 0.08em; color: var(--fg-0); }
+  .setup__sarms { display: grid; gap: var(--space-3); width: 100%; }
+  .setup__sedge { height: 18px; width: 1px; background: var(--energy-700); }
+
+  @keyframes setup-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .setup__carrier, .setup__ring--inner { animation: none; } }
+  @media (max-width: 640px) {
+    .setup__svg { display: none; }
+    .setup__stack { display: grid; justify-items: center; gap: 0; padding: var(--space-5) var(--space-4); }
+  }
+</style>

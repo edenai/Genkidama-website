@@ -15,6 +15,7 @@ export const sections: NavSection[] = [
   { id: 'gap', index: '02', title: 'The gap', short: 'Gap' },
   { id: 'bridge', index: '03', title: 'The bridge', short: 'Bridge' },
   { id: 'next', index: '04', title: 'The next problem', short: 'Next' },
+  { id: 'experiments', index: '05', title: 'The experiments', short: 'Experiments' },
 ];
 
 export const externalLinks = [

@@ -1,0 +1,52 @@
+---
+/**
+ * The one visual convention of the page: which colour is which system. Cyan
+ * is the MCP route (the landing page's energy), amber is the native route.
+ * Repeated near every chart so the reader never has to infer a side.
+ */
+import { experiments, ARMS, type ArmId } from '@data/experiments';
+import { armFill } from './chart';
+
+interface Props {
+  /** `full` adds the model names; `compact` is swatch + label only. */
+  variant?: 'full' | 'compact';
+  class?: string;
+}
+const { variant = 'compact', class: className } = Astro.props;
+const arms = experiments.arms;
+const route: Record<ArmId, string> = {
+  deepseek_mcp: 'text-only model · Eden AI MCP · tools chosen by the model',
+  gemini_native: 'natively multimodal model · native image / audio input · no tools',
+};
+---
+
+<ul class:list={['arms', `arms--${variant}`, className]} aria-label="Systems compared">
+  {ARMS.map((arm) => (
+    <li class="arms__item" style={`--c: ${armFill(arm)}`}>
+      <span class="arms__swatch" aria-hidden="true"></span>
+      <span class="arms__text">
+        <span class="arms__name">{arms[arm].label}</span>
+        {variant === 'full' && (
+          <span class="arms__meta label label--2xs">{arms[arm].model} · {route[arm]}</span>
+        )}
+      </span>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .arms { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); }
+  .arms__item { display: flex; align-items: flex-start; gap: var(--space-2); }
+  .arms__swatch { width: 12px; height: 12px; margin-top: 0.15em; background: var(--c); flex: none; }
+  .arms__text { display: grid; gap: 0.15rem; }
+  .arms__name {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--fg-0);
+  }
+  .arms__meta { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; }
+  .arms--full { gap: var(--space-4) var(--space-8); }
+</style>

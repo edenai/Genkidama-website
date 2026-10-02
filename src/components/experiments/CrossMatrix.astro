@@ -1,0 +1,89 @@
+---
+/**
+ * Both experiments side by side, one row per dimension, both systems in each
+ * benchmark column. No composite score, no ranking: the ratios at the bottom
+ * are the notebook's own (DeepSeek + MCP ÷ Gemini, on means) and the score
+ * row keeps each benchmark's metric.
+ */
+import { experiments, ARMS, BENCHMARKS, fmt, type ArmId, type BenchmarkId } from '@data/experiments';
+import { armFill, armInk } from './chart';
+
+const E = experiments;
+const arms = E.arms;
+type Row = { label: string; note?: string; value: (b: BenchmarkId, a: ArmId) => string; emphasis?: boolean };
+const rows: Row[] = [
+  { label: 'score', note: 'OCR accuracy · speech F1, over scored runs', value: (b, a) => fmt.pct(E.benchmarks[b].summary[a].scoreOverScored), emphasis: true },
+  { label: 'scored runs', note: 'of 50', value: (b, a) => `${E.benchmarks[b].summary[a].scored} / ${E.benchmarks[b].summary[a].runs}` },
+  { label: 'latency · mean', note: 'total wall-clock per run', value: (b, a) => fmt.s(E.benchmarks[b].summary[a].latencyMeanS) },
+  { label: 'latency · median', value: (b, a) => fmt.s(E.benchmarks[b].summary[a].latencyMedianS) },
+  { label: 'tokens · mean per run', value: (b, a) => fmt.int(E.benchmarks[b].summary[a].totalTokensMean) },
+  { label: 'gateway charge · total', note: 'USD over 50 runs', value: (b, a) => fmt.usd(E.benchmarks[b].summary[a].gatewayCostUsdTotal) },
+  { label: 'specialist-tool charge · total', note: 'USD over 50 runs · MCP route only', value: (b, a) => (E.benchmarks[b].summary[a].runsWithSpecialistCost ? fmt.usd(E.benchmarks[b].summary[a].specialistToolCostUsdTotal) : 'no field') },
+  { label: 'tool calls · mean per run', value: (b, a) => (E.benchmarks[b].summary[a].meanToolCalls ?? 0) > 0 ? (E.benchmarks[b].summary[a].meanToolCalls ?? 0).toFixed(2) : 'none' },
+];
+const ratioRows: { label: string; key: keyof (typeof E.ratios)['mmmu_pro']; format: (v: number | null) => string }[] = [
+  { label: 'score difference', key: 'scoreDifference', format: fmt.pp },
+  { label: 'latency', key: 'latencyRatio', format: fmt.x },
+  { label: 'tokens', key: 'tokensRatio', format: fmt.x },
+  { label: 'gateway charge', key: 'gatewayCostRatio', format: fmt.x },
+  { label: 'price per token', key: 'usdPer1kTokensRatio', format: fmt.x },
+  { label: 'total cost incl. specialist tools ÷ Gemini gateway', key: 'totalCostRatioInclSpecialist', format: fmt.x },
+];
+---
+
+<div class="matrix frame">
+  <div class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> across both experiments</span>
+    <span class="label label--2xs">50 selected tasks per benchmark · no composite score</span>
+  </div>
+  <div class="matrix__scroll">
+    <table class="matrix__table">
+      <thead>
+        <tr>
+          <th scope="col" class="label">dimension</th>
+          {BENCHMARKS.map((b) => ARMS.map((a) => (
+            <th scope="col" style={`--c: ${armFill(a)}; --ink: ${armInk[a]}`}>
+              <span class="matrix__bench label label--2xs">{E.benchmarks[b].title}</span>
+              <span class="matrix__arm"><span class="matrix__swatch" aria-hidden="true"></span>{arms[a].short}</span>
+            </th>
+          )))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr class:list={{ 'matrix__row--emph': r.emphasis }}>
+            <th scope="row"><span class="matrix__dim">{r.label}</span>{r.note && <span class="matrix__note label label--2xs">{r.note}</span>}</th>
+            {BENCHMARKS.map((b) => ARMS.map((a) => <td class="num" style={`--ink: ${armInk[a]}`}>{r.value(b, a)}</td>))}
+          </tr>
+        ))}
+      </tbody>
+      <tbody class="matrix__ratios">
+        <tr><th scope="rowgroup" colspan={1 + ARMS.length * BENCHMARKS.length}><span class="label label--2xs">DeepSeek + MCP relative to Gemini native · computed on means · greater than ×1 = the MCP route uses more</span></th></tr>
+        {ratioRows.map((r) => (
+          <tr>
+            <th scope="row"><span class="matrix__dim">{r.label}</span></th>
+            {BENCHMARKS.map((b) => <td class="num matrix__ratio" colspan={ARMS.length}>{r.format(E.ratios[b][r.key])}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .matrix__scroll { overflow-x: auto; }
+  .matrix__table { width: 100%; min-width: 40rem; }
+  .matrix__table th, .matrix__table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: var(--text-sm); }
+  .matrix__table thead th { border-bottom-color: var(--line-strong); vertical-align: bottom; }
+  .matrix__table thead th:first-child { vertical-align: bottom; }
+  .matrix__table td { text-align: right; color: var(--ink, var(--fg-0)); font-family: var(--font-mono); white-space: nowrap; }
+  .matrix__table tbody th { font-weight: 500; color: var(--fg-0); display: grid; gap: 0.15rem; }
+  .matrix__bench { display: block; color: var(--fg-3); margin-bottom: 0.3rem; }
+  .matrix__arm { display: inline-flex; align-items: center; gap: var(--space-2); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--fg-0); white-space: nowrap; }
+  .matrix__swatch { width: 10px; height: 10px; background: var(--c); }
+  .matrix__note { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .matrix__row--emph td { font-size: var(--text-md); font-family: var(--font-display); font-weight: 500; }
+  .matrix__ratios th[scope='rowgroup'] { padding-top: var(--space-5); border-bottom-color: var(--line-strong); display: table-cell; }
+  .matrix__ratio { color: var(--fg-0); }
+  .matrix__table tbody:last-child tr:last-child th, .matrix__table tbody:last-child tr:last-child td { border-bottom: 0; }
+</style>

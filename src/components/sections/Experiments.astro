@@ -1,0 +1,134 @@
+---
+/**
+ * Entry point to the experiments. The homepage only says that real
+ * measurements exist, what they compare and where to read them; the charts
+ * and tables live on /details. The counts come from the same curated dataset
+ * that page renders (src/data/experiments), so nothing here can drift from it.
+ */
+import Marker from '@/components/visual/Marker.astro';
+import { experiments } from '@data/experiments';
+
+const ocr = experiments.benchmarks.mmmu_pro;
+const sp = experiments.benchmarks.spoken_squad;
+const runs = (ocr.sampleCount + sp.sampleCount) * 2;
+const evaluatedAt = Object.values(experiments.provenance.sources).map((s) => s.evaluatedAt).sort().at(-1)!.slice(0, 10);
+
+const routes = [
+  { id: 'native', eyebrow: 'route a · native multimodal', stations: ['model', 'binary input', 'answer'] },
+  { id: 'mcp', eyebrow: 'route b · text + mcp', stations: ['model', 'mcp', 'specialist', 'model', 'answer'] },
+];
+
+// Terms match the methodology: model time and MCP/tool time are recorded
+// separately from the wall-clock total, and the two cost fields are never summed.
+const measures = [
+  'accuracy · F1',
+  'total wall-clock latency',
+  'recorded model time',
+  'recorded mcp/tool time',
+  'tokens',
+  'tool calls',
+  'gateway charge',
+  'specialist-tool charge',
+];
+---
+
+<section class="section experiments" id="experiments" aria-labelledby="experiments-title">
+  <div class="container">
+    <div class="section__head">
+      <Marker index="05" title="The experiments" />
+      <span class="label label--2xs">{ocr.dataset} · {sp.dataset} · {runs} runs · evaluated {evaluatedAt}</span>
+    </div>
+
+    <div class="grid">
+      <div style="grid-column: 1 / span 5" data-reveal>
+        <h2 id="experiments-title" class="display display--lg">Same prompts. Same assets. Two routes.</h2>
+        <p class="prose" style="margin-top: var(--space-4)">
+          A natively multimodal model reads binary inputs directly. A text-only model reaches the
+          same modalities through Eden AI's MCP specialists. The experiments record what each
+          capability path costs. They do not declare a winner.
+        </p>
+        <div class="experiments__actions">
+          <a class="btn btn--solid" href="/details">Open the experiments <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+
+      <figure class="experiments__routes frame" style="grid-column: 7 / span 6" data-reveal data-reveal-delay="0.1">
+        <figcaption class="frame__bar">
+          <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> two routes · one answer</span>
+          <span class="label label--2xs">{ocr.sampleCount} OCR tasks · {sp.sampleCount} speech questions</span>
+        </figcaption>
+        <ol class="experiments__list">
+          {routes.map((r) => (
+            <li class:list={['experiments__route', `experiments__route--${r.id}`]}>
+              <span class:list={['label', { 'label--energy': r.id === 'mcp' }]}>{r.eyebrow}</span>
+              <span class="experiments__line" aria-hidden="true">
+                {r.stations.map((s, i) => (
+                  <>
+                    {i > 0 && <span class="experiments__edge"></span>}
+                    <span class:list={['experiments__station', { 'experiments__station--mcp': s === 'mcp' }]}>{s}</span>
+                  </>
+                ))}
+              </span>
+              <span class="visually-hidden">{r.stations.join(', then ')}</span>
+            </li>
+          ))}
+        </ol>
+        <dl class="experiments__measures">
+          <dt class="label label--2xs">recorded per scenario</dt>
+          <dd>
+            {measures.map((m) => <span class="experiments__measure">{m}</span>)}
+          </dd>
+        </dl>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Last section before the footer: carry the page's closing space. */
+  .experiments { padding-bottom: clamp(var(--space-9), 14vh, var(--space-11)); }
+  .experiments__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+
+  .experiments__list { display: grid; }
+  .experiments__route {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--line);
+  }
+  .experiments__line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .experiments__station {
+    position: relative;
+    padding-left: 16px;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--fg-0);
+    white-space: nowrap;
+  }
+  .experiments__station::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    transform: translateY(-50%) rotate(45deg);
+    border: 1px solid var(--fg-2);
+    background: var(--bg-0);
+  }
+  .experiments__station--mcp { color: var(--energy-300); }
+  .experiments__station--mcp::before { border-color: var(--energy-500); background: var(--energy-500); box-shadow: var(--glow-sm); }
+  .experiments__edge { flex: 1 1 12px; min-width: 12px; height: 1px; background: var(--line-strong); }
+  .experiments__route--mcp .experiments__edge { background: var(--line-energy); }
+
+  .experiments__measures { display: grid; gap: var(--space-2); padding: var(--space-4); }
+  .experiments__measures dd { margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 0.8rem; }
+  .experiments__measure { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; color: var(--fg-2); white-space: nowrap; }
+</style>

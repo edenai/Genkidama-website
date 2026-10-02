@@ -1,0 +1,74 @@
+---
+/**
+ * Token usage for one benchmark, both systems: mean prompt and completion
+ * tokens per run (stacked, since they do sum to the total the gateway
+ * bills), the total over the 50 runs, and the per-run median and maximum.
+ * In the MCP route the prompt carries the tool catalogue and every tool
+ * result fed back to the model.
+ */
+import { experiments, ARMS, fmt, type BenchmarkId } from '@data/experiments';
+import { armFill, armInk } from './chart';
+
+interface Props { bench: BenchmarkId }
+const { bench } = Astro.props;
+const b = experiments.benchmarks[bench];
+const arms = experiments.arms;
+const maxTotal = Math.max(...ARMS.map((a) => b.summary[a].totalTokensMean ?? 0));
+const ratio = experiments.ratios[bench].tokensRatio;
+const maxPerRun = (arm: (typeof ARMS)[number]) => Math.max(...b.samples.map((s) => s[arm].totalTokens ?? 0));
+---
+
+<figure class="tok frame">
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> token usage · per run</span>
+    <span class="label label--2xs">mean over {b.sampleCount} runs · DeepSeek + MCP ÷ Gemini {fmt.x(ratio)}</span>
+  </figcaption>
+
+  <div class="tok__body">
+    {ARMS.map((arm) => {
+      const s = b.summary[arm];
+      const p = s.promptTokensMean ?? 0, c = s.completionTokensMean ?? 0;
+      return (
+        <div class="tok__arm" style={`--c: ${armFill(arm)}; --ink: ${armInk[arm]}`}>
+          <div class="tok__head">
+            <span class="tok__swatch" aria-hidden="true"></span>
+            <span class="tok__name">{arms[arm].label}</span>
+            <span class="tok__fig num">{fmt.int(s.totalTokensMean)} tokens per run</span>
+          </div>
+          <div class="tok__track" role="img" aria-label={`${arms[arm].label}: ${fmt.int(p)} prompt and ${fmt.int(c)} completion tokens per run on average`}>
+            <span class="tok__seg tok__seg--prompt" style={`width: ${(p / maxTotal) * 100}%`} title={`prompt ${fmt.int(p)}`}></span>
+            <span class="tok__seg tok__seg--completion" style={`width: ${(c / maxTotal) * 100}%`} title={`completion ${fmt.int(c)}`}></span>
+          </div>
+          <dl class="tok__parts">
+            <div><dt class="label label--2xs"><span class="tok__key tok__key--prompt" aria-hidden="true"></span>prompt</dt><dd class="num">{fmt.int(p)}</dd></div>
+            <div><dt class="label label--2xs"><span class="tok__key tok__key--completion" aria-hidden="true"></span>completion</dt><dd class="num">{fmt.int(c)}</dd></div>
+            <div><dt class="label label--2xs">median · max per run</dt><dd class="num">{fmt.k(s.totalTokensMedian)} · {fmt.k(maxPerRun(arm))}</dd></div>
+            <div><dt class="label label--2xs">total over {s.runs} runs</dt><dd class="num">{fmt.k(s.totalTokensSum)}</dd></div>
+            <div><dt class="label label--2xs">rounds per run</dt><dd class="num">{s.roundsMean?.toFixed(2)}</dd></div>
+          </dl>
+        </div>
+      );
+    })}
+    <p class="tok__note label label--2xs">linear scale, shared across both systems · in the MCP route the prompt includes the {b.mcpToolCount}-tool catalogue and every tool result returned to the model</p>
+  </div>
+</figure>
+
+<style>
+  .tok__body { display: grid; gap: var(--space-5); padding: var(--space-4); }
+  .tok__arm { display: grid; gap: var(--space-2); }
+  .tok__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); }
+  .tok__swatch { width: 10px; height: 10px; background: var(--c); align-self: center; }
+  .tok__name { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-0); }
+  .tok__fig { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink); margin-left: auto; }
+  .tok__track { display: flex; height: 14px; background: var(--bg-2); }
+  .tok__seg { display: block; height: 100%; min-width: 1px; }
+  .tok__seg--prompt { background: var(--c); }
+  .tok__seg--completion { background: var(--c); opacity: 0.45; }
+  .tok__parts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; }
+  .tok__parts div { display: flex; align-items: baseline; gap: var(--space-2); }
+  .tok__parts dt { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.4em; }
+  .tok__parts dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-1); }
+  .tok__key { width: 8px; height: 8px; background: var(--c); display: inline-block; }
+  .tok__key--completion { opacity: 0.45; }
+  .tok__note { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+</style>

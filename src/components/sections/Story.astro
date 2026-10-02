@@ -1,17 +1,31 @@
 ---
 /**
  * The scroll-driven story. Six phases; each block owns one sixth of the
- * scene's progress. Copy is placeholder for the content pass — the animation
- * carries the explanation; the text confirms it.
+ * scene's progress. The animation carries the explanation: titles orient,
+ * signals give the precise terms, and a body sentence appears only where it
+ * states something the scene cannot show (a claim, a protocol name).
+ *
+ * The sixth phase is the Gathering: a tall block whose sticky inner holds the
+ * wordmark while the scene falls silent, converges and forms the Genkidama
+ * (see animations/scroll/gathering.ts and config/animation.ts `gathering`).
  */
 import { PHASES } from '@config/animation';
+import HeroWordmark from '@/components/visual/HeroWordmark.astro';
 
-const phases = [
+interface StoryPhase {
+  id: string;
+  label: string;
+  title: string;
+  body?: string;
+  signals: [string, string][];
+  side: 'left' | 'right';
+}
+
+const phases: StoryPhase[] = [
   {
     id: PHASES[0],
     label: 'Isolation',
     title: 'A model, alone.',
-    body: 'A text model is superb at text. Images, audio, scanned pages and the live web sit outside its native reach.',
     signals: [['native', 'text'], ['reach', '0 / 8']],
     side: 'left',
   },
@@ -19,7 +33,6 @@ const phases = [
     id: PHASES[1],
     label: 'Capability gap',
     title: 'The capabilities exist. Just not here.',
-    body: 'OCR, vision, speech, web access: each is a solved problem, running somewhere else. The model cannot touch any of it.',
     signals: [['specialists', '8'], ['distance', '∞']],
     side: 'right',
   },
@@ -27,7 +40,7 @@ const phases = [
     id: PHASES[2],
     label: 'MCP',
     title: 'A routing layer between them.',
-    body: 'Eden AI’s MCP server sits between the model and every specialist. One protocol, many tools. The model only needs to know how to ask.',
+    body: 'One protocol, many tools.',
     signals: [['protocol', 'mcp'], ['tools exposed', '8']],
     side: 'left',
   },
@@ -35,7 +48,6 @@ const phases = [
     id: PHASES[3],
     label: 'Composition',
     title: 'One call. Out and back.',
-    body: 'The model requests a capability. The request travels through MCP to a specialist; the result travels back as text the model already understands.',
     signals: [['path', 'model → mcp → tool → model'], ['return', 'result']],
     side: 'right',
   },
@@ -43,19 +55,17 @@ const phases = [
     id: PHASES[4],
     label: 'Accumulation',
     title: 'Every capability feeds the core.',
-    body: 'Each tool the model can call adds energy. A cheaper, smaller model starts doing work that used to require something far larger.',
+    body: 'A smaller model starts doing work that used to require something far larger.',
     signals: [['streams', '8 / 8'], ['reach', '8 / 8']],
     side: 'left',
   },
-  {
-    id: PHASES[5],
-    label: 'Genkidama',
-    title: 'One system. Many sources.',
-    body: 'Gathered from many specialists, the composite is more capable than any single model in it. That gathering is the whole idea.',
-    signals: [['state', 'composite'], ['energy', 'max']],
-    side: 'right',
-  },
 ];
+
+const gathering = {
+  id: PHASES[5],
+  label: 'Genkidama',
+  signals: [['sources', '8'], ['state', 'composite'], ['energy', 'max']] as [string, string][],
+};
 ---
 
 <section class="story" data-story aria-labelledby="story-title">
@@ -63,7 +73,7 @@ const phases = [
 
   {phases.map((ph, i) => (
     <article
-      class:list={['phase', `phase--${ph.side}`, { 'phase--last': i === phases.length - 1 }]}
+      class:list={['phase', `phase--${ph.side}`]}
       id={`phase-${ph.id}`}
       data-phase={i}
     >
@@ -74,7 +84,7 @@ const phases = [
           <span>{ph.label}</span>
         </span>
         <h3 class="phase__title display display--lg">{ph.title}</h3>
-        <p class="phase__body prose">{ph.body}</p>
+        {ph.body && <p class="phase__body prose">{ph.body}</p>}
         <dl class="phase__signals">
           {ph.signals.map(([k, v]) => (
             <div class="phase__signal">
@@ -86,6 +96,29 @@ const phases = [
       </div>
     </article>
   ))}
+
+  {/* Phase 06: the Gathering. Silence, then convergence, then the name. */}
+  <article class="phase phase--last" id={`phase-${gathering.id}`} data-phase={phases.length} data-gathering>
+    <div class="gathering on-stage">
+      <span class="gathering__marker marker" data-gathering-marker>
+        <span class="marker__index">phase 06</span>
+        <span class="marker__sep" aria-hidden="true">/</span>
+        <span>{gathering.label}</span>
+      </span>
+      <h3 class="visually-hidden">Genkidama: one system, many sources.</h3>
+      <div class="gathering__word" data-gathering-word>
+        <HeroWordmark as="p" decorative variant="gathering" />
+      </div>
+      <dl class="phase__signals gathering__signals" data-gathering-signals>
+        {gathering.signals.map(([k, v]) => (
+          <div class="phase__signal">
+            <dt class="label">{k}</dt>
+            <dd class="label label--strong">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </article>
 </section>
 
 <style>
@@ -100,7 +133,43 @@ const phases = [
     align-items: center;
     padding-inline: var(--gutter);
   }
-  .phase--last { min-height: 140vh; align-items: start; padding-top: 30vh; }
+  /* The Gathering owns a long scroll range so the scene has room to fall
+     silent, converge and hold. The inner block is sticky (no ScrollTrigger
+     pin, no spacer): it stays centred while the block scrolls, then releases
+     exactly as the content surface arrives. */
+  .phase--last {
+    min-height: 260vh;
+    min-height: 260svh;
+    display: block;
+    padding-inline: 0;
+  }
+  /* Three rows: the word sits on the core (the hero's hollow letters, now
+     filled with the core's light); marker and signals are pushed clear of
+     the core's disc so they stay readable against the dark field. */
+  .gathering {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    display: grid;
+    grid-template-rows: 1fr auto 1fr;
+    justify-items: center;
+    padding-inline: var(--gutter);
+    text-align: center;
+  }
+  .gathering .gathering__marker { align-self: end; padding-bottom: 26vh; }
+  .gathering__word { max-width: 100%; }
+  /* Scoped selector: outranks the shared .phase__signals spacing below. */
+  .gathering .gathering__signals { align-self: start; justify-content: center; border-top: 0; padding-top: 28vh; margin: 0; }
+
+  /* Non-JS / reduced-motion: no long cinematic range; the name is simply
+     there and the scene settles toward its end state. */
+  html.js:not(.reduced-motion) .gathering__marker,
+  html.js:not(.reduced-motion) .gathering__signals { opacity: 0; }
+  html.reduced-motion .phase--last,
+  html:not(.js) .phase--last { min-height: 100svh; }
+  html.reduced-motion .gathering,
+  html:not(.js) .gathering { position: relative; }
 
   .phase__inner {
     display: grid;
@@ -137,6 +206,19 @@ const phases = [
 
   @media (max-width: 899px) {
     .phase { align-items: end; padding-bottom: var(--space-8); }
+    .phase--last { padding-bottom: 0; }
+    /* Portrait: the core fills the middle of the screen at full energy, so
+       the name and readings sit below it, where the other phases keep their
+       text on small screens. */
+    .gathering {
+      grid-template-rows: auto auto auto;
+      align-content: end;
+      gap: var(--space-4);
+      padding-bottom: 12vh;
+      padding-bottom: 12svh;
+    }
+    .gathering .gathering__marker { padding-bottom: 0; }
+    .gathering .gathering__signals { padding-top: var(--space-2); }
     .phase--right .phase__inner { justify-self: start; }
     .phase__inner {
       padding: var(--space-4);

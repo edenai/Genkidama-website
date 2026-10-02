@@ -1,0 +1,124 @@
+---
+/**
+ * Task performance for one benchmark, both systems: the benchmark's own
+ * metric with its denominators spelled out, and one cell per selected task so
+ * the reader sees every outcome, not just a mean. Nothing is pooled across
+ * benchmarks: OCR is accuracy with the official parser, speech is SQuAD F1
+ * with exact match alongside.
+ */
+import { experiments, ARMS, fmt, outcomeLabel, type ArmId, type BenchmarkId } from '@data/experiments';
+import { armFill, armInk } from './chart';
+
+interface Props { bench: BenchmarkId }
+const { bench } = Astro.props;
+const b = experiments.benchmarks[bench];
+const arms = experiments.arms;
+const isOcr = bench === 'mmmu_pro';
+const metricName = isOcr ? 'accuracy' : 'F1';
+const definition = isOcr
+  ? 'official MMMU-Pro multiple-choice parser · one letter, correct or incorrect'
+  : 'SQuAD v1.1 token F1, maximum over the reference answers · exact match alongside';
+
+/** Cell appearance for one run. */
+function cell(arm: ArmId, s: (typeof b.samples)[number]) {
+  const r = s[arm];
+  const scored = r.score !== null;
+  const kind = !scored ? 'fail' : r.score === 1 ? 'full' : r.score === 0 ? 'zero' : 'partial';
+  const alpha = kind === 'partial' ? Math.max(0.3, r.score ?? 0) : 1;
+  const title = `${s.id} · ${arms[arm].short} · ${outcomeLabel[r.outcome] ?? r.outcome}${scored ? ` · ${metricName} ${isOcr ? (r.score === 1 ? 'correct' : 'incorrect') : (r.score ?? 0).toFixed(2)}` : ''}`;
+  return { kind, alpha, title };
+}
+const legend = isOcr
+  ? [['full', 'correct'], ['zero', 'incorrect'], ['fail', 'no scorable answer']]
+  : [['full', 'F1 = 1'], ['partial', 'partial F1 (shade = value)'], ['zero', 'F1 = 0'], ['fail', 'no scorable answer']];
+---
+
+<figure class="score frame">
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> task performance · {metricName}</span>
+    <span class="label label--2xs">{b.sampleCount} selected tasks · both systems</span>
+  </figcaption>
+
+  <div class="score__body">
+    <p class="score__def label label--2xs">{definition}</p>
+
+    {ARMS.map((arm) => {
+      const s = b.summary[arm];
+      const over = s.scoreOverScored;
+      const all = s.scoreOverAllRuns;
+      return (
+        <div class="score__arm" style={`--c: ${armFill(arm)}; --ink: ${armInk[arm]}`}>
+          <div class="score__head">
+            <span class="score__swatch" aria-hidden="true"></span>
+            <span class="score__name">{arms[arm].label}</span>
+          </div>
+          <div class="score__figures">
+            <div class="score__big">
+              <span class="score__value num">{fmt.pct(over)}</span>
+              <span class="score__den label label--2xs">{metricName} over {s.scored} scored {s.scored === 1 ? 'run' : 'runs'}</span>
+            </div>
+            <dl class="score__secondary">
+              {s.scored !== s.runs && (
+                <div><dt class="label label--2xs">over all {s.runs} runs</dt><dd class="num">{fmt.pct(all)}</dd></div>
+              )}
+              {isOcr ? (
+                <div><dt class="label label--2xs">correct</dt><dd class="num">{s.exactMatches} / {s.runs}</dd></div>
+              ) : (
+                <div><dt class="label label--2xs">exact match</dt><dd class="num">{s.exactMatches} / {s.runs}</dd></div>
+              )}
+              {Object.entries(s.outcomes).filter(([o]) => !['correct', 'answered'].includes(o)).map(([o, n]) => (
+                <div><dt class="label label--2xs">{outcomeLabel[o] ?? o}</dt><dd class="num">{n}</dd></div>
+              ))}
+            </dl>
+          </div>
+          <div class="score__bar" role="img" aria-label={`${arms[arm].label}: ${metricName} ${fmt.pct(over)} over ${s.scored} scored runs`}>
+            <span class="score__fill" style={`width: ${(over ?? 0) * 100}%`}></span>
+            {s.scored !== s.runs && <span class="score__mark" style={`left: ${(all ?? 0) * 100}%`} title={`over all runs: ${fmt.pct(all)}`}></span>}
+          </div>
+          <ol class="score__cells" aria-label={`${arms[arm].label}: outcome of each of the ${b.sampleCount} tasks, in selection order`}>
+            {b.samples.map((smp) => {
+              const c = cell(arm, smp);
+              return <li class:list={['score__cell', `score__cell--${c.kind}`]} style={`--a: ${c.alpha}`} title={c.title}></li>;
+            })}
+          </ol>
+        </div>
+      );
+    })}
+
+    <ul class="score__legend">
+      {legend.map(([k, l]) => (
+        <li><span class:list={['score__cell', 'score__cell--legend', `score__cell--${k}`]} style="--a: 0.6" aria-hidden="true"></span><span class="label label--2xs">{l}</span></li>
+      ))}
+    </ul>
+  </div>
+</figure>
+
+<style>
+  .score__body { display: grid; gap: var(--space-5); padding: var(--space-4); }
+  .score__def { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .score__arm { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+  .score__head { display: flex; align-items: center; gap: var(--space-2); }
+  .score__swatch { width: 10px; height: 10px; background: var(--c); }
+  .score__name { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-0); }
+  .score__figures { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-4) var(--space-7); }
+  .score__big { display: grid; gap: 0.25rem; }
+  .score__value { font-family: var(--font-display); font-weight: 500; font-size: var(--text-2xl); line-height: 1; color: var(--ink); }
+  .score__den { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; }
+  .score__secondary { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); margin: 0; }
+  .score__secondary div { display: grid; gap: 0.2rem; }
+  .score__secondary dt { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .score__secondary dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--fg-0); }
+  .score__bar { position: relative; height: 6px; background: var(--bg-2); }
+  .score__fill { position: absolute; inset: 0 auto 0 0; background: var(--c); }
+  .score__mark { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--fg-0); }
+  .score__cells { display: grid; grid-template-columns: repeat(50, minmax(0, 1fr)); gap: 2px; }
+  .score__cell { aspect-ratio: 1; min-width: 0; background: var(--c); opacity: var(--a, 1); }
+  .score__cell--zero { background: var(--signal-fail); }
+  .score__cell--fail { background: repeating-linear-gradient(-45deg, transparent 0 2px, var(--fg-2) 2px 3px); border: 1px solid var(--fg-3); }
+  .score__cell--legend { width: 12px; height: 12px; display: inline-block; aspect-ratio: auto; }
+  .score__legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); }
+  .score__legend li { display: flex; align-items: center; gap: var(--space-2); }
+  @media (max-width: 640px) {
+    .score__cells { grid-template-columns: repeat(25, minmax(0, 1fr)); }
+  }
+</style>

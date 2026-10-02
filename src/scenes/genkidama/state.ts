@@ -1,6 +1,7 @@
 import {
   keyframes,
   afterglow,
+  gathering,
   smoothing,
   PHASES,
   PHASE_COUNT,
@@ -46,17 +47,46 @@ export class SceneState {
     return PHASES[this.phaseIndex]!;
   }
 
+  /**
+   * Progress within the last phase, 0..1, or -1 outside it. The scene reads
+   * this to fire the surge once per pass through the convergence.
+   */
+  gatheringT = -1;
+
   setProgress(p: number) {
     this.progress = clamp01(p);
     const scaled = this.progress * PHASE_COUNT;
     const i = Math.min(PHASE_COUNT - 1, Math.floor(scaled));
     const t = scaled - i;
     this.phaseIndex = i;
-    const a = keyframes[i]!;
-    const b = keyframes[i + 1]!;
-    // Ease within each phase so boundaries feel like arrivals, not linear ramps.
+    if (i === PHASE_COUNT - 1) {
+      this.gatheringT = t;
+      this.setGathering(t);
+      return;
+    }
+    this.gatheringT = -1;
+    this.blend(keyframes[i]!, keyframes[i + 1]!, t);
+  }
+
+  /** Ease within each segment so boundaries feel like arrivals, not linear ramps. */
+  private blend(a: SceneParams, b: SceneParams, t: number) {
     const e = t * t * (3 - 2 * t);
     for (const k of PARAM_KEYS) this.target[k] = lerp(a[k], b[k], e);
+  }
+
+  /**
+   * The last phase is piecewise: accumulation → silence (hold) → surge →
+   * genkidama (hold). The segments are short on purpose; the parameter
+   * damping in `update` turns each jump into a fast attack and a long settle.
+   */
+  private setGathering(t: number) {
+    const { silenceEnd, surgeAt, convergeEnd, charge, surge } = gathering;
+    const from = keyframes[PHASE_COUNT - 1]!;
+    const to = keyframes[PHASE_COUNT]!;
+    if (t < silenceEnd) this.blend(from, charge, t / silenceEnd);
+    else if (t < surgeAt) this.blend(charge, surge, (t - silenceEnd) / (surgeAt - silenceEnd));
+    else if (t < convergeEnd) this.blend(surge, to, (t - surgeAt) / (convergeEnd - surgeAt));
+    else this.blend(to, to, 1);
   }
 
   setPhase(phase: Phase | number) {
