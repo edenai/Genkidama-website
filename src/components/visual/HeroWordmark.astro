@@ -1,24 +1,26 @@
 ---
 /**
- * GENKIDAMA as part of the visual system: the three center letters are
- * hollow so the core burns through them; the outer letters are solid. In the
- * hero the letters converge on load (see animations/scroll/hero.ts); in the
- * story's Gathering the same word re-forms at the moment of convergence
- * (animations/scroll/gathering.ts). The hero instance is unchanged: `as`,
- * `decorative` and `variant` default to the hero's markup.
+ * GENKIDAMA as part of the visual system. In the hero, "DAMA" is hollow so
+ * the core burns through it while "GENKI" stays solid; the letters converge
+ * on load (see animations/scroll/hero.ts). In the story's Gathering the same
+ * word re-forms at the moment of convergence (animations/scroll/gathering.ts)
+ * with every letter solid, in the same color as the hero's "GENKI". The hero
+ * instance is the default: `as`, `decorative` and `variant` default to its
+ * markup.
  */
 interface Props {
   /** Element to render. The hero is the page's h1; the Gathering is a decorative p. */
   as?: 'h1' | 'p' | 'div';
   /** Hidden from assistive tech (the heading next to it carries the meaning). */
   decorative?: boolean;
-  /** `gathering`: letters start charged by the core's light; see styles. */
+  /** `gathering`: hidden until the convergence assembles it; all letters solid. */
   variant?: 'hero' | 'gathering';
 }
 const { as: Tag = 'h1', decorative = false, variant = 'hero' } = Astro.props;
 const word = 'GENKIDAMA';
 const letters = word.split('');
-const hollow = new Set([3, 4, 5]); // K I D
+// Hero only: D A M A are hollow. The Gathering renders the whole word solid.
+const hollow = variant === 'hero' ? new Set([5, 6, 7, 8]) : new Set<number>();
 ---
 
 <Tag
@@ -57,15 +59,8 @@ const hollow = new Set([3, 4, 5]); // K I D
   }
 
   /* Gathering: hidden until the convergence assembles it (JS + motion only).
-     Once charged, the hollow letters carry the core's light. */
+     All letters are solid here, so there is no hollow/charged treatment. */
   html.js:not(.reduced-motion) .wordmark--gathering .wordmark__letter { opacity: 0; }
-  .wordmark--gathering .wordmark__letter--hollow {
-    transition: -webkit-text-stroke-color var(--dur-slow) var(--ease-out), text-shadow var(--dur-slow) var(--ease-out);
-  }
-  .wordmark--gathering.is-charged .wordmark__letter--hollow {
-    -webkit-text-stroke-color: var(--energy-100);
-    text-shadow: var(--glow-text);
-  }
   @media (max-width: 640px) {
     .wordmark { font-size: clamp(2.2rem, 0.6rem + 8.4vw, 4rem); padding-left: 0.08em; }
     .wordmark__letter { margin-right: 0.08em; }
