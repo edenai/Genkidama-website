@@ -3,7 +3,7 @@
  * Curate the combined showcase results for the website.
  *
  * Reads the assembled benchmark folder from the comparison repository
- * (`results/raw/combined_showcase_v1`, built by that repository's
+ * (`results/raw/combined_showcase_v2`, built by that repository's
  * `scripts/build_combined_showcase.py`) and writes ONE presentation file:
  *
  *     src/data/experiments/showcase.json
@@ -12,22 +12,26 @@
  * per-run evaluation rows with the same definitions as the comparison
  * repository's `benchmark/combined_showcase/analysis.py::summary_table`, and
  * then asserted against the numbers the analysis notebook
- * (`notebooks/combined_showcase_analysis.ipynb`) printed when it was executed,
- * so a drift between the two sources fails this script instead of reaching
- * the page. Missing values stay `null`; they are never turned into zero.
+ * (`notebooks/combined_showcase_v2_analysis.ipynb`) printed when it was
+ * executed, so a drift between the two sources fails this script instead of
+ * reaching the page. Missing values stay `null`; they are never turned into
+ * zero.
  *
  * Usage:
- *   node scripts/curate-showcase.mjs [path/to/combined_showcase_v1]
+ *   node scripts/curate-showcase.mjs [path/to/combined_showcase_v2]
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SOURCE = resolve(
   process.argv[2] ??
-    resolve(here, '../../Genkidama-project-comparisons/results/raw/combined_showcase_v1'),
+    resolve(here, '../../Genkidama-project-comparisons/results/raw/combined_showcase_v2'),
 );
+// Folder name as the comparison repository names it (e.g. combined_showcase_v2);
+// its notebook is `notebooks/<folder>_analysis.ipynb`.
+const FOLDER = basename(SOURCE);
 const OUT = resolve(here, '../src/data/experiments/showcase.json');
 
 // Python's json module writes bare NaN for missing tiers; JSON has no NaN.
@@ -191,11 +195,19 @@ for (const bench of ['mmmu_pro', 'spoken_squad']) {
     scoreDefinition: context[bench].score_definition,
     scoreMetric: bench === 'mmmu_pro' ? 'accuracy' : 'F1',
     sampleCount: samples.length,
+    // Size of the random sample the source run was launched on (the complete
+    // run's paired-task count can be smaller when some tasks never started).
+    sampledTasks: bman.sample?.selected_n ?? null,
     datasetSource: bman.dataset?.repo_id ?? bman.dataset?.name ?? null,
     datasetRevision: bman.dataset?.revision ?? bman.dataset?.provenance?.github_commit ?? null,
     promptMode: bman.prompt?.mode ?? bman.prompt?.version ?? null,
     policy: bman.policy ? { maxRounds: bman.policy.max_rounds, maxToolCalls: bman.policy.max_tool_calls } : null,
     mcpToolCount: bman.mcp?.tool_count ?? null,
+    // The catalogue as served to the MCP arm (snapshot in the run manifest).
+    // On the slim endpoint it is a handful of direct tools plus
+    // `search_tools` / `run_tool`, through which any other Eden AI tool is
+    // reachable (the speech tool then appears as `run_tool(audio_speech_to_text)`).
+    mcpToolNames: bman.mcp?.tool_names ?? null,
     arms: (bman.arms ?? []).map((a) => ({ arm: a.arm, model: a.label, route: a.route, offerMcpTools: !!a.offer_mcp_tools, delivery: a.delivery ?? a.description ?? null })),
     tiers: (manifest.counts[bench].tiers ?? []).map((t) => ({ tier: Number.isFinite(t.tier) ? t.tier : null, label: t.tier_label, description: t.description, eligible: t.eligible, selected: t.selected })),
     fullRun: {
@@ -226,21 +238,33 @@ for (const bench of Object.keys(benchmarks)) {
 }
 
 // ---------------------------------------------------------------------------
-// Cross-check against the executed notebook (values copied from its rendered
-// summary tables on 2026-10-02). A mismatch means the folder changed since
-// the notebook ran, or a definition drifted: stop and investigate.
+// Cross-check against the executed notebook (values copied from the rendered
+// cross-benchmark summary, ratio, tool-usage and speech-tool tables of
+// `notebooks/combined_showcase_v2_analysis.ipynb` on 2026-10-09). A mismatch
+// means the folder changed since the notebook ran, or a definition drifted:
+// stop and investigate.
 const expected = {
   mmmu_pro: {
-    deepseek_mcp: { runs: 50, scored: 50, scoreOverScored: 0.98, scoreOverAllRuns: 0.98, latencyMeanS: 111.4, latencyMedianS: 55.0, modelLatencyMeanS: 92.8, toolLatencyMeanS: 14.2, roundsMean: 3.68, promptTokensMean: 52324, completionTokensMean: 4517, totalTokensMean: 56840, totalTokensSum: 2842020, gatewayCostUsdMean: 0.02291, gatewayCostUsdTotal: 1.1457, specialistToolCostUsdTotal: 0.817, usdPer1kTokens: 0.00038, mcpUsageRate: 1, meanToolCalls: 4.22 },
-    gemini_native: { runs: 50, scored: 45, scoreOverScored: 0.9778, scoreOverAllRuns: 0.88, latencyMeanS: 9.1, latencyMedianS: 7.8, modelLatencyMeanS: 9.1, toolLatencyMeanS: 0, roundsMean: 1, promptTokensMean: 1228, completionTokensMean: 1559, totalTokensMean: 2892, totalTokensSum: 144621, gatewayCostUsdMean: 0.00677, gatewayCostUsdTotal: 0.3383, specialistToolCostUsdTotal: 0, usdPer1kTokens: 0.00218, mcpUsageRate: 0, meanToolCalls: 0 },
+    deepseek_mcp: { runs: 50, scored: 50, scoreOverScored: 0.94, scoreOverAllRuns: 0.94, exactMatches: 47, latencyMeanS: 62.1, latencyMedianS: 29.9, modelLatencyMeanS: 52.1, toolLatencyMeanS: 9.1, roundsMean: 3.06, promptTokensMean: 10994, completionTokensMean: 3285, totalTokensMean: 14278, totalTokensSum: 713911, gatewayCostUsdMean: 0.00652, gatewayCostUsdTotal: 0.3261, specialistToolCostUsdTotal: 0.5059, usdPer1kTokens: 0.00043, mcpUsageRate: 1, meanToolCalls: 3.14 },
+    gemini_native: { runs: 50, scored: 49, scoreOverScored: 0.8367, scoreOverAllRuns: 0.82, exactMatches: 41, latencyMeanS: 16.8, latencyMedianS: 13.3, modelLatencyMeanS: 16.8, toolLatencyMeanS: 0, roundsMean: 1, promptTokensMean: 1229, completionTokensMean: 1745, totalTokensMean: 2974, totalTokensSum: 148713, gatewayCostUsdMean: 0.00747, gatewayCostUsdTotal: 0.3733, specialistToolCostUsdTotal: 0, usdPer1kTokens: 0.00232, mcpUsageRate: 0, meanToolCalls: 0 },
   },
   spoken_squad: {
-    deepseek_mcp: { runs: 50, scored: 50, scoreOverScored: 0.9712, scoreOverAllRuns: 0.9712, exactMatches: 46, latencyMeanS: 19.7, latencyMedianS: 18.9, modelLatencyMeanS: 11.2, toolLatencyMeanS: 7.1, roundsMean: 3, promptTokensMean: 32805, completionTokensMean: 230, totalTokensMean: 33035, totalTokensSum: 1651741, gatewayCostUsdMean: 0.00424, gatewayCostUsdTotal: 0.2122, specialistToolCostUsdTotal: 0.3179, usdPer1kTokens: 0.00013, mcpUsageRate: 1, meanToolCalls: 2, werMean: 0.0256, werMedian: 0.0173, asrBaselineWerMean: 0.2423 },
-    gemini_native: { runs: 50, scored: 50, scoreOverScored: 0.9237, scoreOverAllRuns: 0.9237, exactMatches: 41, latencyMeanS: 3.3, latencyMedianS: 2.9, modelLatencyMeanS: 3.3, toolLatencyMeanS: 0, roundsMean: 1, promptTokensMean: 1747, completionTokensMean: 203, totalTokensMean: 1950, totalTokensSum: 97519, gatewayCostUsdMean: 0.00207, gatewayCostUsdTotal: 0.1036, specialistToolCostUsdTotal: 0, usdPer1kTokens: 0.00105, mcpUsageRate: 0, meanToolCalls: 0 },
+    deepseek_mcp: { runs: 50, scored: 50, scoreOverScored: 0.9812, scoreOverAllRuns: 0.9812, exactMatches: 47, latencyMeanS: 24.4, latencyMedianS: 21.9, modelLatencyMeanS: 15.8, toolLatencyMeanS: 7.4, roundsMean: 4.04, promptTokensMean: 14230, completionTokensMean: 413, totalTokensMean: 14643, totalTokensSum: 732149, gatewayCostUsdMean: 0.00469, gatewayCostUsdTotal: 0.2347, specialistToolCostUsdTotal: 0.389, usdPer1kTokens: 0.00031, mcpUsageRate: 1, meanToolCalls: 3.18, werMean: 0.0295, werMedian: 0.0224, transcriptsWithWer: 50, asrBaselineWerMean: 0.2532, runsCallingSpeechTool: 50, speechToolErroringCalls: 0 },
+    gemini_native: { runs: 50, scored: 50, scoreOverScored: 0.955, scoreOverAllRuns: 0.955, exactMatches: 41, latencyMeanS: 6.7, latencyMedianS: 4.9, modelLatencyMeanS: 6.7, toolLatencyMeanS: 0, roundsMean: 1, promptTokensMean: 1840, completionTokensMean: 346, totalTokensMean: 2186, totalTokensSum: 109278, gatewayCostUsdMean: 0.00268, gatewayCostUsdTotal: 0.1338, specialistToolCostUsdTotal: 0, usdPer1kTokens: 0.00116, mcpUsageRate: 0, meanToolCalls: 0 },
   },
   ratios: {
-    mmmu_pro: { scoreDifference: 0.0022, latencyRatio: 12.24, tokensRatio: 19.65, gatewayCostRatio: 3.38, usdPer1kTokensRatio: 0.17, totalCostRatioInclSpecialist: 5.8 },
-    spoken_squad: { scoreDifference: 0.0475, latencyRatio: 5.97, tokensRatio: 16.94, gatewayCostRatio: 2.05, usdPer1kTokensRatio: 0.12, totalCostRatioInclSpecialist: 5.12 },
+    mmmu_pro: { scoreDifference: 0.1033, latencyRatio: 3.7, tokensRatio: 4.8, gatewayCostRatio: 0.87, usdPer1kTokensRatio: 0.19, totalCostRatioInclSpecialist: 2.23 },
+    spoken_squad: { scoreDifference: 0.0262, latencyRatio: 3.64, tokensRatio: 6.7, gatewayCostRatio: 1.75, usdPer1kTokensRatio: 0.27, totalCostRatioInclSpecialist: 4.66 },
+  },
+  // DeepSeek + MCP tool usage per benchmark (notebook section 7).
+  toolUsage: {
+    mmmu_pro: { runs: 50, runsWithMcpCalls: 50, meanCallsPerRun: 3.14, capabilityCalls: 151, utilityCalls: 6, toolExecutionErrors: 1, runsWithRecovery: 1 },
+    spoken_squad: { runs: 50, runsWithMcpCalls: 50, meanCallsPerRun: 3.18, capabilityCalls: 102, utilityCalls: 57, toolExecutionErrors: 3, runsWithRecovery: 3 },
+  },
+  // Complete source runs (notebook section 3, from full_run_context.json).
+  fullRun: {
+    mmmu_pro: { pairedTasks: 94, deepseek_better: 5, equal: 44, gemini_better: 0, deepseek_not_scored: 44, gemini_not_scored: 1 },
+    spoken_squad: { pairedTasks: 100, deepseek_better: 8, equal: 77, gemini_better: 15, deepseek_not_scored: 0, gemini_not_scored: 0 },
   },
 };
 const problems = [];
@@ -248,6 +272,10 @@ const close = (a, b) => a === b || (typeof a === 'number' && typeof b === 'numbe
 for (const bench of ['mmmu_pro', 'spoken_squad']) {
   for (const arm of ARMS) for (const [k, v] of Object.entries(expected[bench][arm])) if (!close(benchmarks[bench].summary[arm][k], v)) problems.push(`${bench}.${arm}.${k}: computed ${benchmarks[bench].summary[arm][k]} vs notebook ${v}`);
   for (const [k, v] of Object.entries(expected.ratios[bench])) if (!close(ratios[bench][k], v)) problems.push(`${bench}.ratio.${k}: computed ${ratios[bench][k]} vs notebook ${v}`);
+  for (const [k, v] of Object.entries(expected.toolUsage[bench])) if (!close(benchmarks[bench].toolUsage[k], v)) problems.push(`${bench}.toolUsage.${k}: computed ${benchmarks[bench].toolUsage[k]} vs notebook ${v}`);
+  const { pairedTasks, ...cmp } = expected.fullRun[bench];
+  if (!close(benchmarks[bench].fullRun.pairedTasks, pairedTasks)) problems.push(`${bench}.fullRun.pairedTasks: ${benchmarks[bench].fullRun.pairedTasks} vs notebook ${pairedTasks}`);
+  for (const [k, v] of Object.entries(cmp)) if (!close(benchmarks[bench].fullRun.comparison[k], v)) problems.push(`${bench}.fullRun.comparison.${k}: ${benchmarks[bench].fullRun.comparison[k]} vs notebook ${v}`);
 }
 if (problems.length) {
   console.error('Cross-check against the notebook FAILED:\n  ' + problems.join('\n  '));
@@ -257,18 +285,18 @@ if (problems.length) {
 const out = {
   generatedAt: new Date().toISOString(),
   provenance: {
-    folder: 'results/raw/combined_showcase_v1',
+    folder: `results/raw/${FOLDER}`,
     repository: 'Genkidama-project-comparisons',
     assembledAt: manifest.created_at,
     codeCommit: manifest.sources.mmmu_pro.source_code_git_commit,
-    notebook: 'notebooks/combined_showcase_analysis.ipynb',
+    notebook: `notebooks/${FOLDER}_analysis.ipynb`,
     sources: Object.fromEntries(Object.entries(manifest.sources).map(([k, v]) => [k, { runName: v.run_name, evaluatedAt: v.evaluated_at, evaluationRows: v.evaluation_rows }])),
     curationScript: 'scripts/curate-showcase.mjs',
     crossCheckedAgainstNotebook: true,
   },
   nPerBenchmark: manifest.n_per_benchmark,
   arms: {
-    deepseek_mcp: { label: 'DeepSeek + MCP', short: 'DeepSeek + MCP', model: benchmarks.mmmu_pro.arms.find((a) => a.arm === 'deepseek_mcp')?.model ?? null, description: 'text-only model + the complete Eden AI MCP catalogue; the model decides whether and what to call' },
+    deepseek_mcp: { label: 'DeepSeek + MCP', short: 'DeepSeek + MCP', model: benchmarks.mmmu_pro.arms.find((a) => a.arm === 'deepseek_mcp')?.model ?? null, description: `text-only model + Eden AI MCP (${benchmarks.mmmu_pro.mcpToolCount}-tool catalogue; any other Eden AI tool reachable through search_tools / run_tool); the model decides whether and what to call` },
     gemini_native: { label: 'Gemini native', short: 'Gemini', model: benchmarks.mmmu_pro.arms.find((a) => a.arm === 'gemini_native')?.model ?? null, description: 'natively multimodal model; image or audio delivered as a native content part; no tools' },
   },
   selection: {

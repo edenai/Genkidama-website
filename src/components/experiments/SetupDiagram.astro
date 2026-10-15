@@ -11,6 +11,13 @@ const ocr = experiments.benchmarks.mmmu_pro;
 const sp = experiments.benchmarks.spoken_squad;
 const arms = experiments.arms;
 const tools = ocr.mcpToolCount;
+// What the catalogue holds: the direct capability tools by name, then the
+// discovery pair through which any other Eden AI tool is reached.
+const MCP_UTILITIES = new Set(['check_job', 'list_models', 'run_tool', 'search_tools', 'upload_file']);
+const directTools = (ocr.mcpToolNames ?? []).filter((t) => !MCP_UTILITIES.has(t));
+const catalogueLine = ocr.mcpToolNames?.includes('run_tool')
+  ? `${directTools.join(' · ')} · search_tools → run_tool`
+  : 'ocr · speech-to-text · …';
 
 const W = 800, H = 500;
 const cx = W / 2;
@@ -58,7 +65,7 @@ const yTask = 44, yModel = 150, yMid = 250, yCmp = 392, yBench = 462;
       <circle class="setup__core" r="4" />
       <text class="setup__sub setup__sub--left" x="42" y="-8">EDEN AI MCP</text>
       <text class="setup__sub setup__sub--left setup__sub--dim" x="42" y="8">{tools} tools offered, model chooses</text>
-      <text class="setup__sub setup__sub--left setup__sub--dim" x="42" y="24">ocr · speech-to-text · …</text>
+      <text class="setup__sub setup__sub--left setup__sub--dim" x="42" y="24">{catalogueLine}</text>
     </g>
 
     {/* route b: gemini native */}

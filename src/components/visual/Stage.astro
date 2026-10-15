@@ -57,17 +57,17 @@
     left: 0;
     top: 0;
     display: grid;
-    grid-template-columns: auto auto;
     grid-template-rows: auto auto;
-    column-gap: 0.5em;
-    align-items: baseline;
+    justify-items: start;
     padding-left: 22px;      /* clear of the glyph */
     margin-top: -0.55em;
     font-family: var(--font-mono);
-    font-size: var(--text-2xs);
+    font-size: var(--text-xs);
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--fg-1);
+    /* A dark halo keeps the name legible where it crosses the core's glow. */
+    text-shadow: 0 0 6px rgba(5, 7, 8, 0.9), 0 0 2px rgba(5, 7, 8, 0.9);
     white-space: nowrap;
     opacity: 0;
     will-change: transform, opacity;
@@ -82,16 +82,17 @@
     height: 1px;
     background: var(--line-strong);
   }
-  .gk-node-label__index { color: var(--accent, var(--energy-500)); }
+  /* Mirrored when the label sits to the left of its node (near the right edge). */
+  .gk-node-label.is-flipped { padding-left: 0; padding-right: 22px; justify-items: end; text-align: right; }
+  .gk-node-label.is-flipped::before { left: auto; right: 12px; }
   .gk-node-label__name { color: var(--fg-0); }
   .gk-node-label__tool {
-    grid-column: 1 / -1;
     text-transform: none;
     letter-spacing: 0;
-    color: var(--fg-3);
+    color: var(--fg-2);
     font-size: 0.9em;
   }
-  .gk-node-label.is-active .gk-node-label__name { color: var(--accent, var(--energy-300)); text-shadow: var(--glow-text); }
+  .gk-node-label.is-active .gk-node-label__name { color: var(--accent, var(--energy-300)); text-shadow: var(--glow-text), 0 0 2px rgba(5, 7, 8, 0.9); }
   .gk-node-label.is-active::before { background: var(--accent, var(--energy-500)); }
 
   @media (max-width: 640px) {

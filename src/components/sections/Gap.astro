@@ -1,17 +1,19 @@
 ---
 import Marker from '@/components/visual/Marker.astro';
-import { capabilities } from '@data/capabilities';
+import { gapGroups, GAP_ROW_COUNT, type Reach } from '@data/gap';
 
-type Cell = 'native' | 'absent' | 'mcp';
-const cell = (native: boolean, viaMcp: boolean): Cell => (native ? 'native' : viaMcp ? 'mcp' : 'absent');
-const legend: Record<Cell, string> = { native: 'native', absent: 'out of reach', mcp: 'via mcp specialist' };
+/* A cell is what the model has on its own (native / partly / out of reach);
+   with MCP in reach, anything the model lacks is one tool call away. */
+type Cell = Reach | 'mcp';
+const withMcp = (own: Reach): Cell => (own === 'native' ? 'native' : 'mcp');
+const legend: Record<Cell, string> = { native: 'native', partial: 'partly · by prompting', absent: 'out of reach', mcp: 'via mcp specialist' };
 ---
 
 <section class="section gap" id="gap" aria-labelledby="gap-title">
   <div class="container">
     <div class="section__head">
       <Marker index="02" title="The gap" />
-      <span class="label label--2xs">{capabilities.length} capabilities · 3 configurations</span>
+      <span class="label label--2xs">{GAP_ROW_COUNT} capabilities · 3 configurations</span>
     </div>
 
     <div class="grid">
@@ -20,7 +22,9 @@ const legend: Record<Cell, string> = { native: 'native', absent: 'out of reach',
         {/* The matrix is the explanation; one sentence names the three columns. */}
         <p class="prose" style="margin-top: var(--space-4)">
           One catalogue, three positions: a text-only model, a natively multimodal model, and
-          the text-only model with Eden AI's MCP server in reach.
+          the text-only model with Eden AI's MCP server in reach. A multimodal model perceives
+          the input on its own; the services below that line are tools, not model abilities,
+          and through MCP each is one call away.
         </p>
         <dl class="gap__legend">
           {(Object.keys(legend) as Cell[]).map((k) => (
@@ -40,27 +44,29 @@ const legend: Record<Cell, string> = { native: 'native', absent: 'out of reach',
               <th scope="col" class="label label--energy">text-only + mcp</th>
             </tr>
           </thead>
-          <tbody>
-            {capabilities.map((c) => {
-              const cells: Cell[] = [
-                cell(c.native.textModel, false),
-                cell(c.native.multimodalModel, false),
-                cell(c.native.textModel, true),
-              ];
-              return (
-                <tr style={`--accent:${c.accent}`}>
-                  <th scope="row">
-                    <span class="gap__glyph mono">{c.glyph}</span>
-                    <span class="gap__name">{c.name}</span>
-                    <span class="gap__tool mono">{c.tool}</span>
-                  </th>
-                  {cells.map((k) => (
-                    <td><span class:list={['gap__mark', `gap__mark--${k}`]} role="img" aria-label={legend[k]}></span></td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
+          {gapGroups.map((g) => (
+            <tbody class="gap__group">
+              <tr><th scope="colgroup" colspan="4"><span class="label label--2xs">{g.title}</span></th></tr>
+              {g.rows.map((c) => {
+                const cells: Cell[] = [c.textModel, c.multimodalModel, withMcp(c.textModel)];
+                return (
+                  <tr style={`--accent:${c.accent}`}>
+                    <th scope="row">
+                      <span class="gap__glyph mono">{c.glyph}</span>
+                      <span class="gap__name">{c.name}</span>
+                      <span class="gap__meta">
+                        <span class="gap__note">{c.note}</span>
+                        <span class="gap__tool mono">{c.tools.join(' · ')}</span>
+                      </span>
+                    </th>
+                    {cells.map((k) => (
+                      <td><span class:list={['gap__mark', `gap__mark--${k}`]} role="img" aria-label={legend[k]}></span></td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          ))}
         </table>
       </div>
     </div>
@@ -75,21 +81,33 @@ const legend: Record<Cell, string> = { native: 'native', absent: 'out of reach',
   .gap__table { width: 100%; }
   .gap__table th, .gap__table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); text-align: left; }
   .gap__table thead th { border-bottom-color: var(--line-strong); }
-  .gap__table tbody tr:last-child th, .gap__table tbody tr:last-child td { border-bottom: 0; }
-  .gap__table tbody th { display: grid; grid-template-columns: 2.4rem 1fr; column-gap: var(--space-2); font-weight: 500; }
+  .gap__table tbody:last-child tr:last-child th, .gap__table tbody:last-child tr:last-child td { border-bottom: 0; }
+  .gap__table tbody th[scope='row'] { display: grid; grid-template-columns: 2.4rem 1fr; column-gap: var(--space-2); font-weight: 500; }
+  /* Group line: a quiet caption row separating perception from the services. */
+  .gap__group th[scope='colgroup'] { padding-top: var(--space-4); padding-bottom: var(--space-2); color: var(--fg-2); border-bottom-color: var(--line-strong); }
+  .gap__group:first-of-type th[scope='colgroup'] { padding-top: var(--space-3); }
   .gap__glyph { font-size: var(--text-xs); color: var(--accent); letter-spacing: 0.12em; align-self: center; }
   .gap__name { color: var(--fg-0); }
-  .gap__tool { grid-column: 2; font-size: var(--text-2xs); color: var(--fg-3); }
+  .gap__meta { grid-column: 2; display: flex; flex-wrap: wrap; column-gap: var(--space-3); row-gap: 0; }
+  .gap__note { font-size: var(--text-2xs); color: var(--fg-2); letter-spacing: 0.02em; }
+  .gap__tool { font-size: var(--text-2xs); color: var(--fg-3); }
   .gap__table td { text-align: center; }
 
   .gap__mark { display: inline-block; width: 12px; height: 12px; }
   .gap__mark--native { background: var(--fg-1); }
+  .gap__mark--partial { border: 1px solid var(--fg-2); background: linear-gradient(135deg, var(--fg-1) 50%, transparent 50%); }
   .gap__mark--absent { border: 1px solid var(--fg-3); }
   .gap__mark--mcp { border: 1px solid var(--energy-500); background: radial-gradient(circle, var(--energy-500) 0 2.5px, transparent 3px); box-shadow: var(--glow-sm); }
 
   @media (max-width: 640px) {
     .gap__tool { display: none; }
     .gap__table th, .gap__table td { padding: var(--space-2); }
-    .gap__table thead th { font-size: var(--text-2xs); }
+    .gap__table thead th { font-size: var(--text-2xs); letter-spacing: 0.08em; }
+    /* Narrow screens: a tighter glyph column and a smaller name keep the
+       four columns inside the frame; if a device is narrower still, the
+       frame scrolls sideways rather than the page. */
+    .gap__table tbody th[scope='row'] { grid-template-columns: 2rem 1fr; }
+    .gap__name { font-size: var(--text-sm); }
+    .gap__matrix { overflow-x: auto; }
   }
 </style>

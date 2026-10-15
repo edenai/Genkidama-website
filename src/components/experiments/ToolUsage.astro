@@ -68,8 +68,10 @@ const maxCalls = Math.max(...Object.values(t.callsPerTool));
   .tools__facts dt { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
   .tools__facts dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--fg-0); }
   .tools__calls { display: grid; gap: var(--space-1); }
-  .tools__call { display: grid; grid-template-columns: 11rem minmax(0, 1fr) 3rem; align-items: center; gap: var(--space-3); font-size: var(--text-xs); }
-  .tools__tool { color: var(--fg-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Tool names may be long (`run_tool(audio_speech_to_text)`): the name column
+     grows to fit them, within a cap, and wraps rather than truncates beyond it. */
+  .tools__call { display: grid; grid-template-columns: minmax(11rem, max-content) minmax(0, 1fr) 3rem; align-items: center; gap: var(--space-3); font-size: var(--text-xs); }
+  .tools__tool { color: var(--fg-1); overflow-wrap: anywhere; line-height: 1.3; }
   .tools__track { height: 6px; background: var(--bg-2); }
   .tools__bar { display: block; height: 100%; background: var(--c); min-width: 1px; }
   .tools__n { color: var(--ink, var(--fg-1)); text-align: right; font-family: var(--font-mono); }
@@ -77,5 +79,5 @@ const maxCalls = Math.max(...Object.values(t.callsPerTool));
   .tools__seq ol { display: grid; gap: var(--space-1); }
   .tools__seq li { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--text-xs); color: var(--fg-1); border-top: 1px solid var(--line); padding-top: var(--space-1); }
   .tools__none { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
-  @media (max-width: 640px) { .tools__call { grid-template-columns: 7rem minmax(0, 1fr) 2.5rem; } }
+  @media (max-width: 640px) { .tools__call { grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr) 2.5rem; } }
 </style>

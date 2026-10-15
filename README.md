@@ -81,15 +81,15 @@ The Details page reads `src/data/experiments/showcase.json`, which is
 generated, never edited by hand:
 
 ```sh
-node scripts/curate-showcase.mjs [path/to/combined_showcase_v1]
+node scripts/curate-showcase.mjs [path/to/combined_showcase_v2]
 ```
 
 The script reads the sibling repository `Genkidama-project-comparisons`
-(`results/raw/combined_showcase_v1`: manifests, `selection.jsonl`,
+(`results/raw/combined_showcase_v2`: manifests, `selection.jsonl`,
 `full_run_context.json` and both `evaluation.jsonl` files), recomputes every
 aggregate with the definitions of that repository's
 `benchmark/combined_showcase/analysis.py`, and asserts them against the values
-the executed `notebooks/combined_showcase_analysis.ipynb` printed. A mismatch
+the executed `notebooks/combined_showcase_v2_analysis.ipynb` printed. A mismatch
 fails the script. Missing values stay `null`; the two cost fields (gateway
 charge, specialist-tool charge) stay separate; recorded model time and
 recorded MCP/tool time are never presented as summing to the wall-clock total.

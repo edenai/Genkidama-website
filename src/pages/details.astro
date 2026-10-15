@@ -27,7 +27,16 @@ const ocr = E.benchmarks.mmmu_pro;
 const sp = E.benchmarks.spoken_squad;
 const dS = sp.summary.deepseek_mcp;
 const fullO = ocr.fullRun;
+const fullS = sp.fullRun;
 const totalRuns = (ocr.sampleCount + sp.sampleCount) * 2;
+// How the MCP catalogue was served to the MCP route: the direct capability
+// tools by name; the rest of Eden AI's tools are reachable through
+// `search_tools` / `run_tool` when those utilities are in the catalogue.
+const MCP_UTILITIES = new Set(['check_job', 'list_models', 'run_tool', 'search_tools', 'upload_file']);
+const directTools = (ocr.mcpToolNames ?? []).filter((t) => !MCP_UTILITIES.has(t));
+const catalogueNote = ocr.mcpToolNames?.includes('run_tool')
+  ? `${directTools.join(' and ')} directly, any other Eden AI tool through search_tools and run_tool`
+  : 'the complete catalogue';
 const evaluatedAt = Object.values(E.provenance.sources).map((s) => s.evaluatedAt).sort().at(-1)!.slice(0, 10);
 
 const sections = [
@@ -42,7 +51,7 @@ const sec = (id: string) => sections.find((s) => s.id === id)!;
 
 /* Observations (section 05 "What the data shows", currently disabled; see the commented section below).
    Sentences are assembled from the data, never typed values. Re-enable by uncommenting this block,
-   the section, its entry in `sections`, and the summaries it reads (dO, gO, gS), plus `const R = E.ratios;` and `fullS = sp.fullRun`.
+   the section, its entry in `sections`, and the summaries it reads (dO, gO, gS), plus `const R = E.ratios;`.
 // Observations: sentences assembled from the data, never typed values.
 const notScored = (p: { rows: number; scored: number }) => p.rows - p.scored;
 const observations = [
@@ -90,7 +99,7 @@ const observations = [
       <p class="details__curated">
         <span class="dot dot--ember" aria-hidden="true"></span>
         <span>
-          <strong>The sample.</strong> {`${fullO.pairedTasks} tasks were drawn at random from each benchmark (stratified, seed 42) and run on both systems. Of those, ${ocr.sampleCount} OCR tasks and ${sp.sampleCount} speech questions, ${ocr.sampleCount + sp.sampleCount} in total, are shown here.`}
+          <strong>The sample.</strong> {`${ocr.sampledTasks ?? fullO.pairedTasks} OCR tasks and ${sp.sampledTasks ?? fullS.pairedTasks} speech questions were drawn at random (stratified, seed 42); ${fullO.pairedTasks} and ${fullS.pairedTasks} of them ran on both systems. Of those, ${ocr.sampleCount} OCR tasks and ${sp.sampleCount} speech questions, ${ocr.sampleCount + sp.sampleCount} in total, are shown here.`}
         </span>
       </p>
 
@@ -133,7 +142,7 @@ const observations = [
                 <dt class="label">Policy</dt>
                 <dd>
                   <span class="details__cardtitle">{ocr.policy?.maxRounds} rounds · {ocr.policy?.maxToolCalls} tool calls</span>
-                  <span class="details__cardnote">Shared limits per run. The MCP route is offered the complete catalogue of {ocr.mcpToolCount} tools and chooses for itself; the native route receives the image or audio as a content part and no tools.</span>
+                  <span class="details__cardnote">Shared limits per run. The MCP route is offered a {ocr.mcpToolCount}-tool catalogue ({catalogueNote}) and chooses for itself; the native route receives the image or audio as a content part and no tools.</span>
                 </dd>
               </div>
             </dl>
@@ -231,8 +240,8 @@ const observations = [
           <div class="grid">
             <h2 id="d-method" class="visually-hidden">Method and sources</h2>
             <ol class="details__steps" style="grid-column: 1 / span 7" data-reveal>
-              <li><span class="details__n">01</span><span>Datasets: {ocr.datasetSource} (config vision, split test, revision {ocr.datasetRevision?.slice(0, 12)}), stratified over 30 subjects, seed 42; {sp.datasetSource} test split (commit {sp.datasetRevision?.slice(0, 12)}), one question per paragraph, stratified by article, seed 42. 100 tasks each were run; 50 each are shown here.</span></li>
-              <li><span class="details__n">02</span><span>Both systems receive the same prompt and the same asset. The asset is uploaded once by the harness; the MCP route sees only its Eden file ID and the complete {ocr.mcpToolCount}-tool catalogue, the native route receives it as a native content part and no tools.</span></li>
+              <li><span class="details__n">01</span><span>Datasets: {ocr.datasetSource} (config vision, split test, revision {ocr.datasetRevision?.slice(0, 12)}), stratified over 30 subjects, seed 42; {sp.datasetSource} test split (commit {sp.datasetRevision?.slice(0, 12)}), one question per paragraph, stratified by article, seed 42. {ocr.sampledTasks ?? fullO.pairedTasks} tasks each were sampled; {fullO.pairedTasks} OCR tasks and {fullS.pairedTasks} speech questions ran on both systems; {ocr.sampleCount} each are shown here.</span></li>
+              <li><span class="details__n">02</span><span>Both systems receive the same prompt and the same asset. The asset is uploaded once by the harness; the MCP route sees only its Eden file ID and a {ocr.mcpToolCount}-tool catalogue ({catalogueNote}), the native route receives it as a native content part and no tools.</span></li>
               <li><span class="details__n">03</span><span>Scoring: MMMU-Pro official multiple-choice parser (accuracy); SQuAD v1.1 exact match and token F1, maximum over reference answers; transcript WER by Levenshtein distance against the SQuAD reference text. Runs that produced no scorable answer are counted separately and never as zero unless a figure says "over all runs".</span></li>
               <li><span class="details__n">04</span><span>Latency is the total wall-clock time of a run. Recorded model time and recorded MCP/tool time are separate quantities and do not sum to it. Tokens are the provider's reported usage. The gateway charge and the specialist-tool charge are separate recorded fields and are never added into one number.</span></li>
               <li><span class="details__n">05</span><span>Selection: tasks paired across systems, tiered (DeepSeek + MCP higher; equal and cheaper on the gateway charge; both at the maximum; Gemini without a scorable answer; equal below the maximum), ordered by cost, latency and token ratio, first {ocr.sampleCount} per benchmark. Tasks where DeepSeek + MCP failed or Gemini scored higher are excluded.</span></li>
@@ -331,6 +340,8 @@ const observations = [
   .details__obs li, .details__steps li { display: grid; grid-template-columns: 2.4rem 1fr; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); }
   .details__obs { font-size: var(--text-base); color: var(--fg-0); }
   .details__n { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--energy-500); padding-top: 0.3em; }
+  /* Paths and run names are long unbreakable tokens: let them wrap on narrow screens. */
+  .details__steps .mono { overflow-wrap: anywhere; }
   .details__actions { display: grid; gap: var(--space-3); align-content: start; justify-items: start; }
 
   @media (max-width: 899px) {
