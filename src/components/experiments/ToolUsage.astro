@@ -1,83 +1,116 @@
 ---
 /**
- * What the MCP route actually did with the catalogue on one benchmark: the
- * tools the model chose, how often, the most frequent sequences, errors and
- * recoveries. Zero calls would have meant answering without perceiving the
- * input; the counts show that did not happen. The native route has no tools.
+ * What each system actually did with the input on one benchmark, from the
+ * execution records, in one compact strip under the comparison. A route that
+ * was offered tools: the tools the model chose (counts over the selected
+ * runs) and the most frequent call sequences drawn as a flow. A native
+ * route: no tool offered, none run. Only tools that appear in the records
+ * are listed; the catalogue offered is named, never shown as if used.
  */
-import { experiments, type BenchmarkId } from '@data/experiments';
-import { armFill, armInk } from './chart';
+import { experiments, armsOf, type BenchmarkId } from '@data/experiments';
+import { describeTool } from '@data/experiments/tools';
+import { armStyle } from './chart';
 
 interface Props { bench: BenchmarkId }
 const { bench } = Astro.props;
 const b = experiments.benchmarks[bench];
-const t = b.toolUsage;
 const arms = experiments.arms;
-const maxCalls = Math.max(...Object.values(t.callsPerTool));
+const modality = bench === 'mmmu_pro' ? 'the screenshot' : 'the recording';
+const splitSequence = (s: string) => s.split(' -> ');
 ---
 
 <figure class="tools frame">
   <figcaption class="frame__bar">
-    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> tool calls</span>
-    <span class="label label--2xs">{b.mcpToolCount}-tool catalogue · chosen by the model</span>
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> tools used</span>
+    <span class="label label--2xs">from the execution records · {b.sampleCount} runs per system</span>
   </figcaption>
   <div class="tools__body">
-    <div class="tools__arm" style={`--c: ${armFill('deepseek_mcp')}; --ink: ${armInk.deepseek_mcp}`}>
-      <div class="tools__head"><span class="tools__swatch" aria-hidden="true"></span><span class="tools__name">{arms.deepseek_mcp.label}</span></div>
-      <dl class="tools__facts">
-        <div><dt class="label label--2xs">runs that called a tool</dt><dd class="num">{t.runsWithMcpCalls} / {t.runs}</dd></div>
-        <div><dt class="label label--2xs">calls per run</dt><dd class="num">{t.meanCallsPerRun?.toFixed(2)}</dd></div>
-        <div><dt class="label label--2xs">capability · utility calls</dt><dd class="num">{t.capabilityCalls} · {t.utilityCalls}</dd></div>
-        <div><dt class="label label--2xs">tool execution errors</dt><dd class="num">{t.toolExecutionErrors}</dd></div>
-        <div><dt class="label label--2xs">runs that recovered from one</dt><dd class="num">{t.runsWithRecovery}</dd></div>
-      </dl>
-      <ol class="tools__calls" aria-label="Calls per tool">
-        {Object.entries(t.callsPerTool).map(([tool, n]) => (
-          <li class="tools__call">
-            <span class="mono tools__tool">{tool}</span>
-            <span class="tools__track"><span class="tools__bar" style={`width: ${(n / maxCalls) * 100}%`}></span></span>
-            <span class="num tools__n">{n}</span>
-          </li>
-        ))}
-      </ol>
-      <div class="tools__seq">
-        <span class="label label--2xs">most frequent sequences</span>
-        <ol>
-          {t.topSequences.slice(0, 3).map((s) => (
-            <li><span class="mono">{s.sequence}</span><span class="num tools__n">{s.runs} runs</span></li>
-          ))}
-        </ol>
-      </div>
-    </div>
-    <div class="tools__arm tools__arm--none" style={`--c: ${armFill('gemini_native')}`}>
-      <div class="tools__head"><span class="tools__swatch" aria-hidden="true"></span><span class="tools__name">{arms.gemini_native.label}</span></div>
-      <p class="label label--2xs tools__none">no tools offered · the input is read natively</p>
-    </div>
+    {armsOf(bench).map((arm) => {
+      const t = b.toolUsage[arm];
+      const info = arms[arm];
+      return (
+        <div class:list={['tools__arm', { 'tools__arm--native': !t }]} style={armStyle(arm)}>
+          <div class="tools__head">
+            <span class="tools__swatch" aria-hidden="true"></span>
+            <span class="tools__name">{info.label}</span>
+            <span class="tools__path label label--2xs">{t ? `offered ${b.mcpToolCount} tools · chose for itself` : 'no tools offered'}</span>
+          </div>
+          {t ? (
+            <>
+              <ul class="tools__chips" aria-label="Tools called, with the number of calls over the selected runs">
+                {Object.entries(t.callsPerTool).map(([tool, n]) => {
+                  const d = describeTool(tool);
+                  return (
+                    <li class:list={['tools__chip', `tools__chip--${d.kind}`]} title={`${tool}: ${d.description}`}>
+                      <span class="tools__kind" aria-hidden="true"></span>
+                      <span class="tools__label">{d.label}</span>
+                      <span class="tools__n num">{n}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <ol class="tools__seqs" aria-label="Most frequent call sequences">
+                {t.topSequences.slice(0, 3).map((s) => (
+                  <li>
+                    <span class="tools__flow" aria-label={s.sequence.replace(/ -> /g, ', then ')}>
+                      {splitSequence(s.sequence).map((step, i) => (
+                        <>
+                          {i > 0 && <span class="tools__edge" aria-hidden="true"></span>}
+                          <span class:list={['tools__station', `tools__station--${describeTool(step).kind}`]} title={step}>{describeTool(step).label}</span>
+                        </>
+                      ))}
+                    </span>
+                    <span class="tools__runs label label--2xs">{s.runs} {s.runs === 1 ? 'run' : 'runs'}</span>
+                  </li>
+                ))}
+              </ol>
+              <p class="tools__facts label label--2xs">
+                {t.runsWithMcpCalls} of {t.runs} runs called a tool · {t.meanCallsPerRun?.toFixed(2)} calls per run · {t.capabilityCalls} capability and {t.utilityCalls} utility calls · {t.toolExecutionErrors} execution {t.toolExecutionErrors === 1 ? 'error' : 'errors'}, {t.runsWithRecovery} recovered
+              </p>
+            </>
+          ) : (
+            <p class="tools__none">No tool offered, none run. The model read {modality} as a native content part: one round per task.</p>
+          )}
+        </div>
+      );
+    })}
   </div>
+  <p class="tools__legend label label--2xs">
+    <span class="tools__kind tools__kind--capability" aria-hidden="true"></span> capability tool, does the task
+    <span class="tools__kind tools__kind--utility" aria-hidden="true"></span> utility tool, finds a tool or polls a job · hover a tool for what it does
+  </p>
 </figure>
 
 <style>
-  .tools__body { display: grid; gap: var(--space-4); padding: var(--space-4); }
-  .tools__arm { display: grid; gap: var(--space-3); }
-  .tools__arm--none { padding-top: var(--space-3); border-top: 1px solid var(--line); }
-  .tools__head { display: flex; align-items: center; gap: var(--space-2); }
+  .tools__body { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
+  .tools__arm { display: grid; gap: var(--space-3); align-content: start; padding: var(--space-4); }
+  .tools__arm + .tools__arm { border-left: 1px solid var(--line); }
+  .tools__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
   .tools__swatch { width: 10px; height: 10px; background: var(--c); }
   .tools__name { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-0); }
-  .tools__facts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; }
-  .tools__facts div { display: grid; gap: 0.15rem; }
-  .tools__facts dt { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
-  .tools__facts dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-sm); color: var(--fg-0); }
-  .tools__calls { display: grid; gap: var(--space-1); }
-  /* Tool names may be long (`run_tool(audio_speech_to_text)`): the name column
-     grows to fit them, within a cap, and wraps rather than truncates beyond it. */
-  .tools__call { display: grid; grid-template-columns: minmax(11rem, max-content) minmax(0, 1fr) 3rem; align-items: center; gap: var(--space-3); font-size: var(--text-xs); }
-  .tools__tool { color: var(--fg-1); overflow-wrap: anywhere; line-height: 1.3; }
-  .tools__track { height: 6px; background: var(--bg-2); }
-  .tools__bar { display: block; height: 100%; background: var(--c); min-width: 1px; }
-  .tools__n { color: var(--ink, var(--fg-1)); text-align: right; font-family: var(--font-mono); }
-  .tools__seq { display: grid; gap: var(--space-2); }
-  .tools__seq ol { display: grid; gap: var(--space-1); }
-  .tools__seq li { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--text-xs); color: var(--fg-1); border-top: 1px solid var(--line); padding-top: var(--space-1); }
-  .tools__none { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
-  @media (max-width: 640px) { .tools__call { grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr) 2.5rem; } }
+  .tools__path { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+
+  .tools__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .tools__chip { display: inline-flex; align-items: center; gap: var(--space-2); padding: 4px 8px; border: 1px solid var(--line); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-0); cursor: help; }
+  .tools__chip--capability { border-color: var(--line-energy); }
+  .tools__kind { display: inline-block; width: 7px; height: 7px; border: 1px solid var(--fg-2); flex: none; }
+  .tools__kind--capability, .tools__chip--capability .tools__kind { border-color: var(--energy-500); background: var(--energy-500); box-shadow: var(--glow-sm); }
+  .tools__n { color: var(--ink); }
+
+  .tools__seqs { display: grid; gap: var(--space-2); }
+  .tools__seqs li { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--line); }
+  .tools__flow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) 0; }
+  .tools__station { position: relative; padding-left: 13px; font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-1); white-space: nowrap; }
+  .tools__station::before { content: ''; position: absolute; left: 0; top: 50%; width: 6px; height: 6px; transform: translateY(-50%) rotate(45deg); border: 1px solid var(--fg-2); background: var(--bg-0); }
+  .tools__station--capability { color: var(--energy-300); }
+  .tools__station--capability::before { border-color: var(--energy-500); background: var(--energy-500); box-shadow: var(--glow-sm); }
+  .tools__edge { width: 12px; height: 1px; margin: 0 var(--space-1); background: var(--line-strong); }
+  .tools__runs { color: var(--fg-2); white-space: nowrap; }
+  .tools__facts { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; line-height: 1.6; }
+  .tools__none { font-size: var(--text-sm); color: var(--fg-2); line-height: 1.6; }
+  .tools__legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--line); color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+
+  @media (max-width: 640px) {
+    .tools__arm + .tools__arm { border-left: 0; border-top: 1px solid var(--line); }
+  }
 </style>

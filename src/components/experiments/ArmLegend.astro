@@ -1,23 +1,19 @@
 ---
 /**
- * The one visual convention of the page: which colour is which system. Cyan
- * is the MCP route (the landing page's energy), amber is the native route.
+ * The one visual convention of the experiments: which colour is which system.
+ * Cyan is the MCP route (the page's energy), ember is the native route.
  * Repeated near every chart so the reader never has to infer a side.
  */
-import { experiments, ARMS, type ArmId } from '@data/experiments';
+import { experiments, ARMS } from '@data/experiments';
 import { armFill } from './chart';
 
 interface Props {
-  /** `full` adds the model names; `compact` is swatch + label only. */
+  /** `full` adds the model identifier and the execution path; `compact` is swatch + label only. */
   variant?: 'full' | 'compact';
   class?: string;
 }
 const { variant = 'compact', class: className } = Astro.props;
 const arms = experiments.arms;
-const route: Record<ArmId, string> = {
-  deepseek_mcp: 'text-only model · Eden AI MCP · tools chosen by the model',
-  gemini_native: 'natively multimodal model · native image / audio input · no tools',
-};
 ---
 
 <ul class:list={['arms', `arms--${variant}`, className]} aria-label="Systems compared">
@@ -27,7 +23,7 @@ const route: Record<ArmId, string> = {
       <span class="arms__text">
         <span class="arms__name">{arms[arm].label}</span>
         {variant === 'full' && (
-          <span class="arms__meta label label--2xs">{arms[arm].model} · {route[arm]}</span>
+          <span class="arms__meta label label--2xs"><span class="mono arms__model">{arms[arm].apiModelId ?? arms[arm].model}</span> · {arms[arm].description}</span>
         )}
       </span>
     </li>
@@ -47,6 +43,8 @@ const route: Record<ArmId, string> = {
     text-transform: uppercase;
     color: var(--fg-0);
   }
-  .arms__meta { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; }
+  .arms__meta { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; line-height: 1.5; max-width: 34rem; }
+  .arms__model { color: var(--fg-1); overflow-wrap: anywhere; }
   .arms--full { gap: var(--space-4) var(--space-8); }
+  .arms--full .arms__item { flex: 1 1 18rem; }
 </style>

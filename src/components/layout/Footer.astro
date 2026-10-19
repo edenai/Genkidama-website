@@ -1,4 +1,5 @@
 ---
+import { sections } from '@data/navigation';
 const year = new Date().getFullYear();
 ---
 
@@ -11,11 +12,9 @@ const year = new Date().getFullYear();
     <div class="footer__col">
       <span class="label">Index</span>
       <ul class="footer__list">
-        <li><a href="/#idea">01 The idea</a></li>
-        <li><a href="/#bridge">03 The bridge</a></li>
-        <li><a href="/#next">04 The next problem</a></li>
-        <li><a href="/#experiments">05 The experiments</a></li>
-        <li><a href="/details">Details · the evidence</a></li>
+        {sections.map((s) => (
+          <li><a href={`#${s.id}`}>{s.index} {s.title}</a></li>
+        ))}
       </ul>
     </div>
     <div class="footer__col">
@@ -27,7 +26,7 @@ const year = new Date().getFullYear();
     </div>
     <div class="footer__meta label label--2xs">
       <span>© {year} Eden AI</span>
-      <span>Site v0.1 · visual system phase</span>
+      <span>Site v0.2 · research showcase</span>
     </div>
   </div>
 </footer>

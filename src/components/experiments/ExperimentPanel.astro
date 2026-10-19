@@ -1,0 +1,213 @@
+---
+/**
+ * One benchmark, every system: performance on the left, cost on the right,
+ * one row per system in each, the tools used underneath. The two panels
+ * (OCR / vision, speech) are this one component, so they read the same way;
+ * what differs is the benchmark's own metric and its caption.
+ *
+ * Performance is the benchmark's metric over the scored runs, on a 0–100%
+ * bar. Cost is USD per run (mean over the selected runs), two recorded fields
+ * kept apart: the gateway charge (every route) and the specialist-tool
+ * charge (MCP route only); totals over the runs sit beside each mean. The
+ * difference indicators are the notebook's own, labelled with their
+ * definition. Nothing is summed into one number.
+ */
+import Marker from '@/components/visual/Marker.astro';
+import ToolUsage from './ToolUsage.astro';
+import { experiments, armsOf, comparedArms, fmt, outcomeLabel, type BenchmarkId } from '@data/experiments';
+import { armStyle } from './chart';
+
+interface Props {
+  bench: BenchmarkId;
+  /** Section marker index, e.g. "ocr / vision" */
+  index: string;
+  title: string;
+  /** One sentence: the task and what the score measures. */
+  caption: string;
+}
+const { bench, index, title, caption } = Astro.props;
+const b = experiments.benchmarks[bench];
+const arms = experiments.arms;
+const cmp = experiments.comparisons[bench];
+const ref = arms[cmp.reference];
+const isOcr = bench === 'mmmu_pro';
+const metric = isOcr ? 'accuracy' : 'F1';
+const metricScale = isOcr ? 'official MMMU-Pro parser · one letter per task, correct or not' : 'SQuAD v1.1 token F1 against the reference answers · exact match alongside';
+const list = armsOf(bench);
+// One scale for every cost bar in the panel: USD per run.
+const maxCost = Math.max(...list.flatMap((a) => [b.summary[a].gatewayCostUsdMean ?? 0, b.summary[a].specialistToolCostUsdMean ?? 0]), 1e-9);
+const w = (v: number | null | undefined) => `${((v ?? 0) / maxCost) * 100}%`;
+// Speech only: transcript quality where a transcript exists.
+const werArms = list.filter((a) => (b.summary[a].werMean ?? null) !== null);
+---
+
+<div class="panel" id={bench}>
+  <div class="section__head panel__head">
+    <Marker index={index} title={b.dataset} />
+    <span class="label label--2xs">{b.sampleCount} selected tasks · every system on each · {b.scoreDefinition}</span>
+  </div>
+
+  <div class="grid panel__grid">
+    <h3 class="display display--lg" style="grid-column: 1 / span 6" data-reveal>{title}</h3>
+    <p class="prose panel__caption" style="grid-column: 8 / span 5" data-reveal data-reveal-delay="0.1">{caption}</p>
+
+    <div class="cmp frame" style="grid-column: 1 / -1" data-reveal>
+      <div class="cmp__grid">
+        {/* Performance */}
+        <section class="cmp__block" aria-labelledby={`${bench}-perf`}>
+          <h4 id={`${bench}-perf`} class="cmp__title">Performance <span class="cmp__unit label label--2xs">{metric} over scored runs · 0–100%</span></h4>
+          {list.map((arm) => {
+            const s = b.summary[arm];
+            const failed = Object.entries(s.outcomes).filter(([o]) => !['correct', 'incorrect', 'answered'].includes(o));
+            return (
+              <div class="cmp__row" style={armStyle(arm)}>
+                <div class="cmp__who">
+                  <span class="cmp__swatch" aria-hidden="true"></span>
+                  <span class="cmp__name">{arms[arm].label}</span>
+                  <span class="cmp__path label label--2xs">{arms[arm].path === 'mcp' ? 'via mcp tools' : 'native input'}</span>
+                </div>
+                <span class="cmp__value num">{fmt.pct(s.scoreOverScored)}</span>
+                <span class="cmp__track" role="img" aria-label={`${arms[arm].label}: ${metric} ${fmt.pct(s.scoreOverScored)} over ${s.scored} scored runs`}>
+                  <span class="cmp__bar" style={`width: ${(s.scoreOverScored ?? 0) * 100}%`}></span>
+                </span>
+                <span class="cmp__den label label--2xs">
+                  {isOcr ? `${s.exactMatches} correct of ${s.scored} scored` : `${s.exactMatches} exact matches of ${s.scored} scored`}
+                  {failed.map(([o, n]) => ` · ${n} ${outcomeLabel[o] ?? o}`)}
+                </span>
+              </div>
+            );
+          })}
+          <dl class="cmp__diffs">
+            {comparedArms(bench).map((arm) => (
+              <div><dt class="label label--2xs">{arms[arm].short} − {ref.short} · {metric} over scored runs</dt><dd class="num">{fmt.pp(cmp.versus[arm]?.scoreDifference)}</dd></div>
+            ))}
+          </dl>
+          <p class="cmp__fine label label--2xs">{metricScale}</p>
+        </section>
+
+        {/* Cost */}
+        <section class="cmp__block cmp__block--cost" aria-labelledby={`${bench}-cost`}>
+          <h4 id={`${bench}-cost`} class="cmp__title">Cost <span class="cmp__unit label label--2xs">USD per run · mean over {b.sampleCount} runs</span></h4>
+
+          <div class="cmp__field">
+            <span class="cmp__fieldname label label--2xs">gateway charge <span class="cmp__fieldnote">the model's rounds, as reported by the gateway · every route</span></span>
+            {list.map((arm) => {
+              const s = b.summary[arm];
+              return (
+                <div class="cmp__row cmp__row--cost" style={armStyle(arm)}>
+                  <div class="cmp__who">
+                    <span class="cmp__swatch" aria-hidden="true"></span>
+                    <span class="cmp__name">{arms[arm].short}</span>
+                  </div>
+                  <span class="cmp__value cmp__value--cost num">{fmt.usd(s.gatewayCostUsdMean, 4)}</span>
+                  <span class="cmp__track" role="img" aria-label={`${arms[arm].label}: gateway charge ${fmt.usd(s.gatewayCostUsdMean, 4)} per run, ${fmt.usd(s.gatewayCostUsdTotal)} over ${s.runs} runs`}>
+                    <span class="cmp__bar" style={`width: ${w(s.gatewayCostUsdMean)}`}></span>
+                  </span>
+                  <span class="cmp__den label label--2xs">{fmt.usd(s.gatewayCostUsdTotal)} over {s.runs} runs</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div class="cmp__field">
+            <span class="cmp__fieldname label label--2xs">specialist-tool charge <span class="cmp__fieldnote">reported inside MCP tool results · MCP route only</span></span>
+            {list.map((arm) => {
+              const s = b.summary[arm];
+              const has = s.runsWithSpecialistCost > 0;
+              return (
+                <div class="cmp__row cmp__row--cost" style={armStyle(arm)}>
+                  <div class="cmp__who">
+                    <span class="cmp__swatch" aria-hidden="true"></span>
+                    <span class="cmp__name">{arms[arm].short}</span>
+                  </div>
+                  {has ? (
+                    <>
+                      <span class="cmp__value cmp__value--cost num">{fmt.usd(s.specialistToolCostUsdMean, 4)}</span>
+                      <span class="cmp__track" role="img" aria-label={`${arms[arm].label}: specialist-tool charge ${fmt.usd(s.specialistToolCostUsdMean, 4)} per run, ${fmt.usd(s.specialistToolCostUsdTotal)} over ${s.runs} runs`}>
+                        <span class="cmp__bar cmp__bar--tool" style={`width: ${w(s.specialistToolCostUsdMean)}`}></span>
+                      </span>
+                      <span class="cmp__den label label--2xs">{fmt.usd(s.specialistToolCostUsdTotal)} over {s.runs} runs · reported on {s.runsWithSpecialistCost} of {s.runs}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span class="cmp__value cmp__value--none label label--2xs">none</span>
+                      <span class="cmp__track cmp__track--empty" aria-hidden="true"></span>
+                      <span class="cmp__den label label--2xs">no tools on this route · gateway charge is its whole recorded cost</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <dl class="cmp__diffs">
+            {comparedArms(bench).map((arm) => (
+              <>
+                <div><dt class="label label--2xs">{arms[arm].short} ÷ {ref.short} · gateway charge per run</dt><dd class="num">{fmt.x(cmp.versus[arm]?.gatewayCostRatio)}</dd></div>
+                <div><dt class="label label--2xs">{arms[arm].short} gateway + specialist-tool ÷ {ref.short} gateway · totals</dt><dd class="num">{fmt.x(cmp.versus[arm]?.totalCostRatioInclSpecialist)}</dd></div>
+              </>
+            ))}
+          </dl>
+          <p class="cmp__fine label label--2xs">the two fields are never added into one number · the native route has only the first</p>
+        </section>
+      </div>
+    </div>
+
+    <div style="grid-column: 1 / -1" data-reveal data-reveal-delay="0.1"><ToolUsage bench={bench} /></div>
+
+    {werArms.length > 0 && (
+      <p class="panel__wer label label--2xs" style="grid-column: 1 / span 8" data-reveal>
+        {werArms.map((a) => `transcript quality, ${arms[a].short}: word error rate mean ${fmt.pct(b.summary[a].werMean)}, median ${fmt.pct(b.summary[a].werMedian)} over ${b.summary[a].transcriptsWithWer} transcripts · the dataset's own ASR baseline ${fmt.pct(b.summary[a].asrBaselineWerMean)}`).join(' · ')} · {ref.short}: no transcript, the audio is read natively
+      </p>
+    )}
+  </div>
+</div>
+
+<style>
+  .panel { padding-top: clamp(var(--space-9), 10vh, var(--space-11)); scroll-margin-top: var(--space-8); }
+  .panel__head { margin-bottom: clamp(var(--space-6), 5vh, var(--space-8)); }
+  .panel__grid { row-gap: var(--space-6); }
+  .panel__caption { align-self: end; }
+  .panel__wer { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; line-height: 1.6; }
+
+  .cmp__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cmp__block { display: grid; gap: var(--space-4); align-content: start; padding: var(--space-5) var(--space-5) var(--space-4); }
+  .cmp__block--cost { border-left: 1px solid var(--line); }
+  .cmp__title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); font-family: var(--font-display); font-weight: 600; font-size: var(--text-md); letter-spacing: 0.04em; color: var(--fg-0); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line-strong); }
+  .cmp__unit { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; }
+
+  .cmp__row { display: grid; grid-template-columns: minmax(8rem, 11rem) auto minmax(0, 1fr); grid-template-areas: 'who value track' 'who den den'; column-gap: var(--space-4); row-gap: var(--space-1); align-items: center; }
+  .cmp__who { grid-area: who; display: grid; grid-template-columns: 10px 1fr; column-gap: var(--space-2); align-items: center; align-content: center; }
+  .cmp__swatch { width: 10px; height: 10px; background: var(--c); grid-row: 1; }
+  .cmp__name { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-0); }
+  .cmp__path { grid-column: 2; color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .cmp__value { grid-area: value; font-family: var(--font-display); font-weight: 500; font-size: var(--text-xl); line-height: 1; color: var(--ink); min-width: 4.2ch; text-align: right; }
+  .cmp__value--cost { font-size: var(--text-lg); min-width: 7ch; }
+  .cmp__value--none { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 400; }
+  .cmp__track { grid-area: track; height: 10px; background: var(--bg-2); }
+  .cmp__track--empty { background: repeating-linear-gradient(-45deg, transparent 0 4px, rgba(238, 242, 244, 0.05) 4px 5px); }
+  .cmp__bar { display: block; height: 100%; background: var(--c); min-width: 1px; }
+  .cmp__bar--tool { opacity: 0.6; }
+  .cmp__den { grid-area: den; color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .cmp__row--cost { grid-template-columns: minmax(8rem, 10rem) auto minmax(0, 1fr); }
+
+  .cmp__field { display: grid; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+  .cmp__fieldname { color: var(--fg-1); }
+  .cmp__fieldnote { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+
+  .cmp__diffs { display: grid; gap: var(--space-2); margin: 0; padding-top: var(--space-3); border-top: 1px solid var(--line); }
+  .cmp__diffs div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-1) var(--space-4); }
+  .cmp__diffs dt { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; }
+  .cmp__diffs dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-md); color: var(--fg-0); }
+  .cmp__fine { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; line-height: 1.5; }
+
+  @media (max-width: 899px) {
+    .cmp__grid { grid-template-columns: 1fr; }
+    .cmp__block--cost { border-left: 0; border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 640px) {
+    .cmp__block { padding: var(--space-4); }
+    .cmp__row, .cmp__row--cost { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'who value' 'track track' 'den den'; }
+    .cmp__value { text-align: right; }
+  }
+</style>

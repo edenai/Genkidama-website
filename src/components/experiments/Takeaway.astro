@@ -1,0 +1,64 @@
+---
+/**
+ * Both benchmarks in one glance: for each, how the compared route stands
+ * against the reference (native) route on the two things measured. The
+ * indicators are the notebook's own, each labelled with its definition; the
+ * sentence underneath is assembled from the same values and states only what
+ * they show on the selected tasks.
+ */
+import { experiments, BENCHMARKS, comparedArms, fmt } from '@data/experiments';
+import { armStyle } from './chart';
+
+const E = experiments;
+const arms = E.arms;
+const ref = arms[E.referenceArm];
+const compared = [...new Set(BENCHMARKS.flatMap((b) => comparedArms(b)))];
+const word = (r: number | null | undefined) => (r === null || r === undefined ? 'not comparable' : r < 1 ? 'lower' : r > 1 ? 'higher' : 'the same');
+const sentence = (arm: string) => {
+  const parts = BENCHMARKS.map((b) => `${word(E.comparisons[b].versus[arm]?.gatewayCostRatio)} on ${E.benchmarks[b].title}`);
+  return `${arms[arm].label} scored at least as well as ${ref.label} on every selected task, by the selection rule. Its gateway charge per run was ${parts.join(' and ')}; its specialist-tool charge is a second amount the native route does not have. One run per task per system, no confidence intervals: a few points of difference are descriptive, not significant.`;
+};
+---
+
+<div class="take frame">
+  <div class="frame__bar">
+    <span class="label"><span class="dot dot--energy" aria-hidden="true"></span> across both benchmarks</span>
+    <span class="label label--2xs">{E.nPerBenchmark} selected tasks each · relative to {ref.short}, the native route · no composite score</span>
+  </div>
+  <div class="take__grid">
+    {BENCHMARKS.map((b) => (
+      <section class="take__bench" aria-labelledby={`take-${b}`}>
+        <h4 id={`take-${b}`} class="take__title">{E.benchmarks[b].title} <span class="label label--2xs">{E.benchmarks[b].dataset} · {E.benchmarks[b].scoreMetric}</span></h4>
+        {comparedArms(b).map((arm) => {
+          const c = E.comparisons[b].versus[arm];
+          return (
+            <dl class="take__rows" style={armStyle(arm)}>
+              <div><dt class="label label--2xs"><span class="take__swatch" aria-hidden="true"></span>{arms[arm].short} − {ref.short} · {E.benchmarks[b].scoreMetric} over scored runs</dt><dd class="num">{fmt.pp(c?.scoreDifference)}</dd></div>
+              <div><dt class="label label--2xs">gateway charge per run · {arms[arm].short} ÷ {ref.short}</dt><dd class="num">{fmt.x(c?.gatewayCostRatio)}</dd></div>
+              <div><dt class="label label--2xs">gateway + specialist-tool ÷ {ref.short} gateway · totals</dt><dd class="num">{fmt.x(c?.totalCostRatioInclSpecialist)}</dd></div>
+            </dl>
+          );
+        })}
+      </section>
+    ))}
+  </div>
+  {compared.map((arm) => <p class="take__sentence">{sentence(arm)}</p>)}
+</div>
+
+<style>
+  .take__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .take__bench { display: grid; gap: var(--space-4); align-content: start; padding: var(--space-4) var(--space-5); }
+  .take__bench + .take__bench { border-left: 1px solid var(--line); }
+  .take__title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3); font-family: var(--font-display); font-weight: 600; font-size: var(--text-md); color: var(--fg-0); }
+  .take__title .label { color: var(--fg-3); text-transform: none; letter-spacing: 0.04em; }
+  .take__rows { display: grid; gap: var(--space-2); margin: 0; }
+  .take__rows div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--line); }
+  .take__rows dt { color: var(--fg-2); text-transform: none; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: var(--space-2); }
+  .take__swatch { width: 8px; height: 8px; background: var(--c); flex: none; }
+  .take__rows dd { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: var(--text-lg); line-height: 1; color: var(--ink); white-space: nowrap; }
+  .take__sentence { padding: var(--space-4) var(--space-5); border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--fg-1); line-height: 1.6; max-width: 60rem; }
+  @media (max-width: 899px) {
+    .take__grid { grid-template-columns: 1fr; }
+    .take__bench + .take__bench { border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>

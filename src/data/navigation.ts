@@ -1,6 +1,7 @@
 /**
- * Narrative section index. Drives the top navigation, the left rail and the
- * section markers. Order is the reading order of the page.
+ * Narrative section index. Drives the top navigation, the left rail, the
+ * footer index and the section markers. Order is the reading order of the
+ * page: Hero → Gap → Bridge → Experiments.
  */
 export interface NavSection {
   id: string;
@@ -11,11 +12,9 @@ export interface NavSection {
 }
 
 export const sections: NavSection[] = [
-  { id: 'idea', index: '01', title: 'The idea', short: 'Idea' },
-  { id: 'gap', index: '02', title: 'The gap', short: 'Gap' },
-  { id: 'bridge', index: '03', title: 'The bridge', short: 'Bridge' },
-  { id: 'next', index: '04', title: 'The next problem', short: 'Next' },
-  { id: 'experiments', index: '05', title: 'The experiments', short: 'Experiments' },
+  { id: 'gap', index: '01', title: 'The gap', short: 'Gap' },
+  { id: 'bridge', index: '02', title: 'The bridge', short: 'Bridge' },
+  { id: 'experiments', index: '03', title: 'The experiments', short: 'Experiments' },
 ];
 
 export const externalLinks = [

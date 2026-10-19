@@ -44,6 +44,8 @@ import ScrollCue from '@/components/visual/ScrollCue.astro';
   .hero {
     position: relative;
     z-index: var(--z-content);
+    /* Letters disperse sideways on scroll; keep that out of the page's scroll width. */
+    overflow-x: clip;
     min-height: 100dvh;
     display: grid;
     place-items: center;

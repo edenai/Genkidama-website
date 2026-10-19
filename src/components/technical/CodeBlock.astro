@@ -37,7 +37,9 @@ const lineCount = code.trimEnd().split('\n').length;
 
 <style>
   .code { overflow: hidden; }
-  .code__title { display: inline-flex; align-items: center; gap: 0.6em; color: var(--fg-1); }
+  /* File paths have no spaces: let the bar wrap and the title break on phones. */
+  .code .frame__bar { flex-wrap: wrap; }
+  .code__title { display: inline-flex; align-items: center; gap: 0.6em; color: var(--fg-1); min-width: 0; overflow-wrap: anywhere; }
   .code__body {
     display: grid;
     grid-template-columns: auto 1fr;

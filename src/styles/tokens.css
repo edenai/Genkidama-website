@@ -34,8 +34,11 @@
   --signal-fail: #ff5a5a;     /* tool failure only */
 
   /* --- Chart series (validated for CVD separation on the dark surface) -- */
-  --series-native: #b8783a;   /* Gemini: native multimodal route */
-  --series-mcp: #0a9bb8;      /* DeepSeek: text + MCP specialists */
+  --series-native: #b8783a;   /* native route: the model reads the input itself */
+  --series-mcp: #0a9bb8;      /* MCP route: text-only model + Eden AI specialists */
+  --ink-native: var(--ember);     /* brighter text colour of each route */
+  --ink-mcp: var(--energy-300);
+  /* A further system gets `--series-<arm id>` / `--ink-<arm id>` here if it needs its own tint. */
 
   /* --- Glow rules: glow is a consequence of energy, never decoration ---- */
   --glow-sm: 0 0 8px rgba(34, 211, 240, 0.55);

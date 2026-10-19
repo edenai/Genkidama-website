@@ -1,45 +1,42 @@
 ---
+/**
+ * 02 / THE BRIDGE. How the MCP server connects a model to tools: the
+ * architecture schematic with the catalogue, one paragraph on the protocol,
+ * then one call followed out and back (the trace) next to the shape of the
+ * request on the wire. The measured experiments follow in 03.
+ */
 import Marker from '@/components/visual/Marker.astro';
 import ArchitectureDiagram from '@/components/technical/ArchitectureDiagram.astro';
 import ToolCallTrace, { type TraceStep } from '@/components/technical/ToolCallTrace.astro';
 import CodeBlock from '@/components/technical/CodeBlock.astro';
-import TerminalBlock, { type TerminalLine } from '@/components/technical/TerminalBlock.astro';
 import { MCP_DOCS_URL } from '@data/mcpCatalog';
 
-// Example round trip through one specialist (OCR). An illustrative interaction,
-// not a measurement: the experiments live on the details page.
+// The shape of one MCP request (JSON-RPC `tools/call`), with OCR as the
+// example specialist. Illustrative: the experiments in 03 hold the real calls.
 const toolCall = `{
   "method": "tools/call",
   "params": {
     "name": "ocr",
     "arguments": {
-      "file": "receipt-014.jpg",
+      "file_id": "<eden ai file id>",
       "language": "auto"
     }
   }
 }`;
 
 const steps: TraceStep[] = [
-  { kind: 'model', label: 'MODEL', detail: 'text-only · decides it needs OCR' },
-  { kind: 'mcp', label: 'MCP', detail: 'eden ai gateway · routes the call' },
-  { kind: 'tool', label: 'OCR', detail: 'ocr · reads the image' },
-  { kind: 'result', label: 'RESULT', detail: 'text · returned as context' },
-  { kind: 'model', label: 'MODEL', detail: 'continues reasoning' },
-];
-
-const lines: TerminalLine[] = [
-  { t: '00.000', kind: 'cmd', text: 'prompt  "What is the total on this receipt?"' },
-  { t: '00.412', kind: 'info', text: 'model   text-only · cannot read the image' },
-  { t: '00.418', kind: 'mcp', text: 'tools/call ocr  →  mcp gateway' },
-  { t: '00.830', kind: 'ok', text: 'ocr     text returned' },
-  { t: '01.204', kind: 'out', text: 'answer  "The total is €48.20."' },
+  { kind: 'model', label: 'MODEL', detail: 'text-only · decides it needs a capability it lacks' },
+  { kind: 'mcp', label: 'MCP', detail: 'eden ai server · receives tools/call, runs the tool' },
+  { kind: 'tool', label: 'TOOL', detail: 'ocr, for example · the specialist reads the image' },
+  { kind: 'result', label: 'RESULT', detail: 'text · returned to the model as a tool message' },
+  { kind: 'model', label: 'MODEL', detail: 'reads it as context and continues' },
 ];
 ---
 
 <section class="section bridge" id="bridge" aria-labelledby="bridge-title">
   <div class="container">
     <div class="section__head">
-      <Marker index="03" title="The bridge" />
+      <Marker index="02" title="The bridge" />
       <span class="label label--2xs">model context protocol</span>
     </div>
 
@@ -55,10 +52,11 @@ const lines: TerminalLine[] = [
         {/* One paragraph: what MCP is and what Eden AI's server exposes. The
             catalogue itself is listed in the diagram above. */}
         <p class="prose">
-          MCP is a standard interface between a model and external tools: an agent discovers the
-          tools a server exposes, calls the one it needs and reads the result back as context.
-          Eden AI's hosted MCP server exposes its expert models this way, one tool per feature,
-          discovered at runtime rather than hardcoded.
+          MCP is a standard interface between a model and external tools. An agent discovers the
+          tools a server exposes, each with a schema, calls the one it needs and reads the result back
+          as context. Eden AI's hosted MCP server exposes its expert models this way, one tool per
+          feature, discovered at runtime rather than hardcoded. Which tools a model sees depends on
+          the server and endpoint it is connected to; the model decides whether and what to call.
         </p>
         <ul class="bridge__facts">
           <li><span class="label">discovery</span><span class="mono">tools/list</span></li>
@@ -72,11 +70,16 @@ const lines: TerminalLine[] = [
 
       <div class="rule" style="grid-column: 1 / -1" data-reveal="rule"></div>
 
-      {/* One worked example. The trace, request and session log show the round
-          trip; the story's phase 04 already narrated it. */}
+      {/* One call, out and back: the trace shows the round trip the story's
+          phase 04 narrated; the request shows what travels on the wire. */}
       <div style="grid-column: 1 / span 4" data-reveal>
-        <h3 class="display display--md">One example, through OCR.</h3>
-        <span class="label label--2xs bridge__note">illustrative · not a measurement</span>
+        <h3 class="display display--md">One call, out and back.</h3>
+        <p class="prose bridge__note">
+          The model names a tool and its arguments; the server runs the specialist and returns the
+          result as a tool message; the model continues with that context. This is the loop the
+          experiments measure.
+        </p>
+        <span class="label label--2xs bridge__tag">protocol shape · not a measurement</span>
       </div>
 
       <div style="grid-column: 5 / span 3" data-reveal data-reveal-delay="0.1">
@@ -84,8 +87,7 @@ const lines: TerminalLine[] = [
       </div>
 
       <div class="bridge__stack" style="grid-column: 8 / span 5" data-reveal data-reveal-delay="0.2">
-        <CodeBlock code={toolCall} lang="json" title="tool_call.json" note="request · example" />
-        <TerminalBlock title="example session · illustrative" lines={lines} />
+        <CodeBlock code={toolCall} lang="json" title="tools/call" note="request · json-rpc params" />
       </div>
     </div>
   </div>
@@ -94,7 +96,8 @@ const lines: TerminalLine[] = [
 <style>
   .bridge__facts { display: grid; gap: var(--space-2); margin-top: var(--space-6); max-width: var(--measure); }
   .bridge__facts li { display: grid; grid-template-columns: 8rem 1fr; padding: var(--space-2) 0; border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--fg-0); }
-  .bridge__note { display: block; margin-top: var(--space-3); color: var(--fg-3); }
+  .bridge__note { margin-top: var(--space-4); font-size: var(--text-sm); }
+  .bridge__tag { display: block; margin-top: var(--space-3); color: var(--fg-3); }
   .bridge__doc {
     display: inline-flex;
     gap: 0.5em;

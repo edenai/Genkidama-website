@@ -1,97 +1,103 @@
 ---
+/**
+ * 01 / THE GAP. The first content after the story: the title arrives carrying
+ * the core's light (the `afterimage` reveal) so the hand-off from stage to
+ * page is a transfer of energy. Then the breadth of the catalogue as one card
+ * per capability family, each with a few example tools and how far a
+ * text-only model, a multimodal model, and the text-only model with MCP in
+ * reach get on their own.
+ */
 import Marker from '@/components/visual/Marker.astro';
-import { gapGroups, GAP_ROW_COUNT, type Reach } from '@data/gap';
+import { gapFamilies, GAP_TOOL_COUNT, type Reach } from '@data/gap';
+import { MCP_TOOL_COUNT } from '@data/mcpCatalog';
 
-/* A cell is what the model has on its own (native / partly / out of reach);
-   with MCP in reach, anything the model lacks is one tool call away. */
 type Cell = Reach | 'mcp';
+/* With MCP in reach, anything the model lacks is one tool call away. */
 const withMcp = (own: Reach): Cell => (own === 'native' ? 'native' : 'mcp');
-const legend: Record<Cell, string> = { native: 'native', partial: 'partly · by prompting', absent: 'out of reach', mcp: 'via mcp specialist' };
+const legend: Record<Cell, string> = { native: 'on its own', partial: 'in part', absent: 'out of reach', mcp: 'via an mcp tool' };
+const columns: { key: string; label: string }[] = [
+  { key: 'text', label: 'text-only' },
+  { key: 'multimodal', label: 'multimodal' },
+  { key: 'mcp', label: '+ mcp' },
+];
+const cellsOf = (f: (typeof gapFamilies)[number]): Cell[] => [f.textModel, f.multimodalModel, withMcp(f.textModel)];
 ---
 
 <section class="section gap" id="gap" aria-labelledby="gap-title">
   <div class="container">
     <div class="section__head">
-      <Marker index="02" title="The gap" />
-      <span class="label label--2xs">{GAP_ROW_COUNT} capabilities · 3 configurations</span>
+      <Marker index="01" title="The gap" />
+      <span class="label label--2xs">{gapFamilies.length} capability families · {GAP_TOOL_COUNT} tools · 3 configurations</span>
     </div>
 
     <div class="grid">
-      <div style="grid-column: 1 / span 4" data-reveal>
-        <h2 id="gap-title" class="display display--lg">Where the reach ends.</h2>
-        {/* The matrix is the explanation; one sentence names the three columns. */}
-        <p class="prose" style="margin-top: var(--space-4)">
-          One catalogue, three positions: a text-only model, a natively multimodal model, and
-          the text-only model with Eden AI's MCP server in reach. A multimodal model perceives
-          the input on its own; the services below that line are tools, not model abilities,
-          and through MCP each is one call away.
+      <h2 id="gap-title" class="display display--lg" style="grid-column: 1 / span 5" data-reveal="afterimage">Where the reach ends.</h2>
+      <div class="gap__lead" style="grid-column: 7 / span 6" data-reveal data-reveal-delay="0.2">
+        <p class="prose">
+          A multimodal model perceives more than a text-only one, and neither has every capability
+          built in. With Eden AI's MCP server in reach, what a model lacks is one tool call away.
         </p>
         <dl class="gap__legend">
           {(Object.keys(legend) as Cell[]).map((k) => (
-            <div><dt><span class:list={['gap__mark', `gap__mark--${k}`]} aria-hidden="true"></span></dt><dd class="label">{legend[k]}</dd></div>
+            <div><dt><span class:list={['gap__mark', `gap__mark--${k}`]} aria-hidden="true"></span></dt><dd class="label label--2xs">{legend[k]}</dd></div>
           ))}
         </dl>
       </div>
 
-      <div class="gap__matrix frame" style="grid-column: 5 / span 8" data-reveal data-reveal-delay="0.1">
-        <table class="gap__table">
-          <caption class="visually-hidden">Capability reach by model configuration</caption>
-          <thead>
-            <tr>
-              <th scope="col" class="label">capability</th>
-              <th scope="col" class="label">text-only model</th>
-              <th scope="col" class="label">multimodal model</th>
-              <th scope="col" class="label label--energy">text-only + mcp</th>
-            </tr>
-          </thead>
-          {gapGroups.map((g) => (
-            <tbody class="gap__group">
-              <tr><th scope="colgroup" colspan="4"><span class="label label--2xs">{g.title}</span></th></tr>
-              {g.rows.map((c) => {
-                const cells: Cell[] = [c.textModel, c.multimodalModel, withMcp(c.textModel)];
-                return (
-                  <tr style={`--accent:${c.accent}`}>
-                    <th scope="row">
-                      <span class="gap__glyph mono">{c.glyph}</span>
-                      <span class="gap__name">{c.name}</span>
-                      <span class="gap__meta">
-                        <span class="gap__note">{c.note}</span>
-                        <span class="gap__tool mono">{c.tools.join(' · ')}</span>
-                      </span>
-                    </th>
-                    {cells.map((k) => (
-                      <td><span class:list={['gap__mark', `gap__mark--${k}`]} role="img" aria-label={legend[k]}></span></td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          ))}
-        </table>
-      </div>
+      <ul class="gap__cards" style="grid-column: 1 / -1" data-reveal data-reveal-delay="0.15" aria-label="Capability families and reach by model configuration">
+        {gapFamilies.map((f) => (
+          <li class="gap__card frame" style={`--accent:${f.accent}`}>
+            <div class="gap__head">
+              <span class="gap__glyph mono" aria-hidden="true">{f.glyph}</span>
+              <span class="gap__name">{f.name}</span>
+              <span class="gap__count label label--2xs">{f.tools.length} {f.tools.length === 1 ? 'tool' : 'tools'}</span>
+            </div>
+            <ul class="gap__tools" aria-label={`Example ${f.name} tools`}>
+              {f.exampleTools.map((t) => <li class="gap__tool" title={t.name}>{t.label}</li>)}
+              {f.more > 0 && <li class="gap__tool gap__tool--more">+{f.more}</li>}
+            </ul>
+            <p class="gap__note">{f.note}</p>
+            <dl class="gap__reach">
+              {cellsOf(f).map((k, i) => (
+                <div class:list={['gap__cell', { 'gap__cell--mcp': columns[i].key === 'mcp' }]}>
+                  <dt class="label label--2xs">{columns[i].label}</dt>
+                  <dd><span class:list={['gap__mark', `gap__mark--${k}`]} role="img" aria-label={legend[k]}></span></dd>
+                </div>
+              ))}
+            </dl>
+          </li>
+        ))}
+        <li class="gap__card gap__card--sum frame">
+          <span class="gap__sumnum num">{MCP_TOOL_COUNT}</span>
+          <span class="gap__sumtext">tools in the catalogue, one per expert-model feature, discovered at runtime. Which ones a model sees depends on the endpoint it connects to.</span>
+          <a class="gap__sumlink label" href="#bridge">How the bridge works <span aria-hidden="true">↓</span></a>
+        </li>
+      </ul>
     </div>
   </div>
 </section>
 
 <style>
-  .gap__legend { display: grid; gap: var(--space-2); margin-top: var(--space-6); }
-  .gap__legend div { display: flex; align-items: center; gap: var(--space-3); }
+  .gap__lead { display: grid; gap: var(--space-5); align-content: start; }
+  .gap__legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; }
+  .gap__legend div { display: flex; align-items: center; gap: var(--space-2); }
   .gap__legend dd { margin: 0; }
 
-  .gap__table { width: 100%; }
-  .gap__table th, .gap__table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); text-align: left; }
-  .gap__table thead th { border-bottom-color: var(--line-strong); }
-  .gap__table tbody:last-child tr:last-child th, .gap__table tbody:last-child tr:last-child td { border-bottom: 0; }
-  .gap__table tbody th[scope='row'] { display: grid; grid-template-columns: 2.4rem 1fr; column-gap: var(--space-2); font-weight: 500; }
-  /* Group line: a quiet caption row separating perception from the services. */
-  .gap__group th[scope='colgroup'] { padding-top: var(--space-4); padding-bottom: var(--space-2); color: var(--fg-2); border-bottom-color: var(--line-strong); }
-  .gap__group:first-of-type th[scope='colgroup'] { padding-top: var(--space-3); }
-  .gap__glyph { font-size: var(--text-xs); color: var(--accent); letter-spacing: 0.12em; align-self: center; }
-  .gap__name { color: var(--fg-0); }
-  .gap__meta { grid-column: 2; display: flex; flex-wrap: wrap; column-gap: var(--space-3); row-gap: 0; }
-  .gap__note { font-size: var(--text-2xs); color: var(--fg-2); letter-spacing: 0.02em; }
-  .gap__tool { font-size: var(--text-2xs); color: var(--fg-3); }
-  .gap__table td { text-align: center; }
+  .gap__cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+  .gap__card { display: grid; gap: var(--space-3); align-content: start; padding: var(--space-4); }
+  .gap__head { display: flex; align-items: baseline; gap: var(--space-2); }
+  .gap__glyph { font-size: var(--text-xs); color: var(--accent); letter-spacing: 0.12em; }
+  .gap__name { font-family: var(--font-display); font-weight: 600; font-size: var(--text-md); color: var(--fg-0); }
+  .gap__count { margin-left: auto; color: var(--fg-3); white-space: nowrap; }
+  .gap__tools { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); }
+  .gap__tool { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; color: var(--fg-1); padding: 2px 6px; border: 1px solid var(--line); }
+  .gap__tool--more { color: var(--fg-3); border-style: dashed; }
+  .gap__note { font-size: var(--text-xs); color: var(--fg-2); line-height: 1.5; }
+  .gap__reach { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin: auto 0 0; padding-top: var(--space-3); border-top: 1px solid var(--line); }
+  .gap__cell { display: grid; gap: var(--space-2); justify-items: center; text-align: center; }
+  .gap__cell dt { color: var(--fg-3); }
+  .gap__cell--mcp dt { color: var(--energy-500); }
+  .gap__cell dd { margin: 0; }
 
   .gap__mark { display: inline-block; width: 12px; height: 12px; }
   .gap__mark--native { background: var(--fg-1); }
@@ -99,15 +105,13 @@ const legend: Record<Cell, string> = { native: 'native', partial: 'partly · by 
   .gap__mark--absent { border: 1px solid var(--fg-3); }
   .gap__mark--mcp { border: 1px solid var(--energy-500); background: radial-gradient(circle, var(--energy-500) 0 2.5px, transparent 3px); box-shadow: var(--glow-sm); }
 
-  @media (max-width: 640px) {
-    .gap__tool { display: none; }
-    .gap__table th, .gap__table td { padding: var(--space-2); }
-    .gap__table thead th { font-size: var(--text-2xs); letter-spacing: 0.08em; }
-    /* Narrow screens: a tighter glyph column and a smaller name keep the
-       four columns inside the frame; if a device is narrower still, the
-       frame scrolls sideways rather than the page. */
-    .gap__table tbody th[scope='row'] { grid-template-columns: 2rem 1fr; }
-    .gap__name { font-size: var(--text-sm); }
-    .gap__matrix { overflow-x: auto; }
-  }
+  .gap__card--sum { border-color: var(--line-energy); justify-items: start; }
+  .gap__card--sum::before, .gap__card--sum::after { border-color: var(--energy-500); }
+  .gap__sumnum { font-family: var(--font-display); font-weight: 500; font-size: var(--text-xl); line-height: 1; color: var(--energy-300); }
+  .gap__sumtext { font-size: var(--text-xs); color: var(--fg-1); line-height: 1.5; }
+  .gap__sumlink { display: inline-flex; gap: 0.5em; margin-top: auto; color: var(--fg-1); border-bottom: 1px solid var(--line-energy); padding-bottom: 0.2em; transition: color var(--dur-fast) var(--ease-out); }
+  .gap__sumlink:hover { color: var(--energy-300); }
+
+  @media (max-width: 1199px) { .gap__cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .gap__cards { grid-template-columns: 1fr; } }
 </style>

@@ -7,24 +7,40 @@
  * Nothing in this module invents, estimates or zero-fills a value: a metric
  * the source did not record is `null` and the components say so.
  *
+ * The structure is model-neutral. An *arm* is one system compared (a model
+ * identifier plus an execution path: `mcp` = text-only model reaching the
+ * input through Eden AI's MCP tools, `native` = the model reads the input
+ * itself). Arms are listed in the JSON; the components never name one.
+ * Comparisons are stated relative to `referenceArm` (the native route).
+ *
  * Vocabulary (matches the comparison repository):
- *   arm        one of the two systems compared
+ *   arm        one of the systems compared
  *   benchmark  one of the two capability experiments (OCR / speech)
  *   score      the benchmark's own metric: accuracy (official MMMU-Pro
  *              parser) or SQuAD v1.1 F1; "over scored" excludes runs that
  *              produced no scorable answer, "over all runs" counts them as 0
+ *   cost       two recorded fields, never summed into one headline: the
+ *              gateway charge (what Eden AI's gateway reported for the model
+ *              rounds of a run) and the specialist-tool charge (what MCP tool
+ *              results reported, MCP route only)
  */
 import showcase from './showcase.json';
 
-export type ArmId = 'deepseek_mcp' | 'gemini_native';
+export type ArmId = string;
 export type BenchmarkId = 'mmmu_pro' | 'spoken_squad';
-export const ARMS: ArmId[] = ['deepseek_mcp', 'gemini_native'];
+export type ExecutionPath = 'mcp' | 'native';
 export const BENCHMARKS: BenchmarkId[] = ['mmmu_pro', 'spoken_squad'];
 
 export interface ArmInfo {
   label: string;
   short: string;
+  /** Model label as the run manifest names it (e.g. deepseek-v4-flash-0731). */
   model: string | null;
+  /** Provider-prefixed id the gateway was called with. */
+  apiModelId: string | null;
+  path: ExecutionPath;
+  route: string;
+  inputModalities: string[] | null;
   description: string;
 }
 
@@ -35,24 +51,15 @@ export interface ArmSummary {
   scoreOverAllRuns: number | null;
   exactMatches: number;
   outcomes: Record<string, number>;
-  latencyMeanS: number | null;
-  latencyMedianS: number | null;
-  latencyP95S: number | null;
-  modelLatencyMeanS: number | null;
-  toolLatencyMeanS: number | null;
-  roundsMean: number | null;
-  promptTokensMean: number | null;
-  completionTokensMean: number | null;
-  totalTokensMean: number | null;
-  totalTokensMedian: number | null;
-  totalTokensSum: number;
   gatewayCostUsdMean: number | null;
   gatewayCostUsdTotal: number | null;
+  runsWithGatewayCost: number;
   specialistToolCostUsdTotal: number | null;
+  specialistToolCostUsdMean: number | null;
   runsWithSpecialistCost: number;
-  usdPer1kTokens: number | null;
   mcpUsageRate: number | null;
   meanToolCalls: number | null;
+  roundsMean: number | null;
   // Speech only
   werMean?: number | null;
   werMedian?: number | null;
@@ -60,17 +67,24 @@ export interface ArmSummary {
   asrBaselineWerMean?: number | null;
   runsCallingSpeechTool?: number;
   speechToolErroringCalls?: number;
+  // Research measurements present in the file for the notebook cross-check;
+  // not comparison metrics on the site.
+  latencyMeanS: number | null;
+  latencyMedianS: number | null;
+  latencyP95S: number | null;
+  modelLatencyMeanS: number | null;
+  toolLatencyMeanS: number | null;
+  promptTokensMean: number | null;
+  completionTokensMean: number | null;
+  totalTokensMean: number | null;
+  totalTokensMedian: number | null;
+  totalTokensSum: number;
+  usdPer1kTokens: number | null;
 }
 
-export interface SampleArm {
+export interface SampleRun {
   outcome: string;
   score: number | null;
-  latencyS: number;
-  modelLatencyS: number | null;
-  toolLatencyS: number | null;
-  promptTokens: number | null;
-  completionTokens: number | null;
-  totalTokens: number | null;
   gatewayCostUsd: number | null;
   specialistToolCostUsd: number | null;
   toolCalls: number;
@@ -79,6 +93,12 @@ export interface SampleArm {
   exactMatch?: boolean | null;
   f1?: number | null;
   wer?: number | null;
+  latencyS: number;
+  modelLatencyS: number | null;
+  toolLatencyS: number | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
 }
 
 export interface Sample {
@@ -89,8 +109,8 @@ export interface Sample {
   rank: number | null;
   tier: number | null;
   tierLabel: string | null;
-  deepseek_mcp: SampleArm;
-  gemini_native: SampleArm;
+  /** One run per arm; an arm absent here was not run on this task. */
+  runs: Record<ArmId, SampleRun>;
 }
 
 export interface Tier {
@@ -107,14 +127,14 @@ export interface FullRunArm {
   scored: number;
   score_over_scored: number | null;
   score_over_all_rows: number | null;
-  total_latency_mean_s: number | null;
-  total_tokens_mean: number | null;
-  prompt_tokens_mean: number | null;
-  completion_tokens_mean: number | null;
   gateway_cost_usd_mean: number | null;
   gateway_cost_usd_total: number | null;
   specialist_tool_cost_usd_total: number | null;
   mcp_usage_rate: number | null;
+  total_latency_mean_s: number | null;
+  total_tokens_mean: number | null;
+  prompt_tokens_mean: number | null;
+  completion_tokens_mean: number | null;
 }
 
 export interface FullRun {
@@ -122,6 +142,7 @@ export interface FullRun {
   rows: number;
   perArm: Record<ArmId, FullRunArm>;
   pairMatrix: Record<string, Record<string, number>>;
+  /** Source field names: deepseek_better, equal, gemini_better, deepseek_not_scored, gemini_not_scored, neither_scored. */
   comparison: Record<string, number>;
 }
 
@@ -137,6 +158,17 @@ export interface ToolUsage {
   topSequences: { sequence: string; runs: number }[];
 }
 
+export interface BenchmarkArm {
+  arm: ArmId;
+  model: string;
+  apiModelId: string | null;
+  route: string;
+  path: ExecutionPath;
+  offerMcpTools: boolean;
+  inputModalities: string[] | null;
+  delivery: string | null;
+}
+
 export interface Benchmark {
   title: string;
   dataset: string;
@@ -149,25 +181,33 @@ export interface Benchmark {
   datasetSource: string | null;
   datasetRevision: string | null;
   promptMode: string | null;
+  prompt: string | null;
+  systemPrompt: string | null;
   policy: { maxRounds: number; maxToolCalls: number } | null;
+  mcpUrl: string | null;
   mcpToolCount: number | null;
   /** The catalogue served to the MCP arm; `search_tools` / `run_tool` reach any other Eden AI tool. */
   mcpToolNames: string[] | null;
-  arms: { arm: ArmId; model: string; route: string; offerMcpTools: boolean; delivery: string | null }[];
+  /** Arms that ran on this benchmark, in manifest order. */
+  arms: BenchmarkArm[];
   tiers: Tier[];
   fullRun: FullRun;
   summary: Record<ArmId, ArmSummary>;
-  toolUsage: ToolUsage;
+  /** Only arms that were offered tools have an entry. */
+  toolUsage: Record<ArmId, ToolUsage>;
   samples: Sample[];
 }
 
-export interface Ratios {
+export interface Comparison {
+  /** Score over scored runs, arm minus reference, in the benchmark's metric. */
   scoreDifference: number | null;
+  /** Mean gateway charge per run, arm ÷ reference. */
+  gatewayCostRatio: number | null;
+  /** (gateway + specialist-tool charge of the arm) ÷ gateway charge of the reference, totals. */
+  totalCostRatioInclSpecialist: number | null;
   latencyRatio: number | null;
   tokensRatio: number | null;
-  gatewayCostRatio: number | null;
   usdPer1kTokensRatio: number | null;
-  totalCostRatioInclSpecialist: number | null;
 }
 
 export interface Showcase {
@@ -178,11 +218,12 @@ export interface Showcase {
     assembledAt: string;
     codeCommit: string;
     notebook: string;
-    sources: Record<BenchmarkId, { runName: string; evaluatedAt: string; evaluationRows: number }>;
+    sources: Record<BenchmarkId, { runName: string; evaluatedAt: string; evaluationRows: number; codeCommit: string }>;
     curationScript: string;
     crossCheckedAgainstNotebook: boolean;
   };
   nPerBenchmark: number;
+  referenceArm: ArmId;
   arms: Record<ArmId, ArmInfo>;
   selection: {
     note: string;
@@ -191,28 +232,30 @@ export interface Showcase {
     orderWithinTier: string;
   };
   benchmarks: Record<BenchmarkId, Benchmark>;
-  ratios: Record<BenchmarkId, Ratios>;
+  comparisons: Record<BenchmarkId, { reference: ArmId; versus: Record<ArmId, Comparison> }>;
 }
 
 export const experiments = showcase as unknown as Showcase;
 
-/** CSS custom property carrying each arm's series colour (tokens.css). */
-export const armSeriesVar: Record<ArmId, string> = {
-  deepseek_mcp: '--series-mcp',
-  gemini_native: '--series-native',
-};
+/** Every arm in the showcase, in manifest order. */
+export const ARMS: ArmId[] = Object.keys(experiments.arms);
+
+/** Arms that ran on one benchmark, in manifest order. */
+export const armsOf = (bench: BenchmarkId): ArmId[] => experiments.benchmarks[bench].arms.map((a) => a.arm);
+
+/** Arms compared against the reference on one benchmark (every arm but the reference). */
+export const comparedArms = (bench: BenchmarkId): ArmId[] => armsOf(bench).filter((a) => a !== experiments.comparisons[bench].reference);
+
+/** The most recent evaluation date across the source runs (YYYY-MM-DD). */
+export const evaluatedAt = Object.values(experiments.provenance.sources).map((s) => s.evaluatedAt).sort().at(-1)!.slice(0, 10);
 
 // --- Formatting (display only; never changes a value's meaning) -----------
 const dash = '—';
 export const fmt = {
   /** 0..1 score as a percentage with one decimal. */
   pct: (v: number | null | undefined, digits = 1) => (v === null || v === undefined ? dash : `${(v * 100).toFixed(digits)}%`),
-  /** Seconds, one decimal under 100, none above. */
-  s: (v: number | null | undefined) => (v === null || v === undefined ? dash : v >= 100 ? `${Math.round(v)} s` : `${v.toFixed(1)} s`),
   /** Integer with thousands separators. */
   int: (v: number | null | undefined) => (v === null || v === undefined ? dash : Math.round(v).toLocaleString('en-US')),
-  /** Tokens, compact: 56,840 → 56.8k. */
-  k: (v: number | null | undefined) => (v === null || v === undefined ? dash : v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(1)}k` : `${Math.round(v)}`),
   /** US dollars; totals to 3 decimals, per-run means to 4. */
   usd: (v: number | null | undefined, digits = 3) => (v === null || v === undefined ? dash : `$${v.toFixed(digits)}`),
   /** Multiplier, e.g. ×12.2. */

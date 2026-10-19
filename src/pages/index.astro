@@ -3,26 +3,22 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import Stage from '@/components/visual/Stage.astro';
 import Hero from '@/components/sections/Hero.astro';
 import Story from '@/components/sections/Story.astro';
-import Idea from '@/components/sections/Idea.astro';
 import Gap from '@/components/sections/Gap.astro';
 import Bridge from '@/components/sections/Bridge.astro';
-import NextProblem from '@/components/sections/NextProblem.astro';
 import Experiments from '@/components/sections/Experiments.astro';
 ---
 
 <BaseLayout
   title="Genkidama — give any model access to any capability"
-  description="An Eden AI research project: a text-only model gathers vision, speech, OCR, web and document capabilities through Eden AI's MCP server."
+  description="An Eden AI research project: a text-only model gathers vision, speech, OCR and web capabilities through Eden AI's MCP server, measured against a natively multimodal model on MMMU-Pro and Spoken-SQuAD."
 >
   <Stage />
   <main id="main">
     <Hero />
     <Story />
     <div class="content" data-content>
-      <Idea />
       <Gap />
       <Bridge />
-      <NextProblem />
       <Experiments />
     </div>
   </main>

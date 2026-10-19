@@ -1,15 +1,9 @@
 ---
 import { sections, externalLinks } from '@data/navigation';
-
-interface Props {
-  /** '' on the home page, '/' on secondary pages so anchors resolve to the home page */
-  base?: string;
-}
-const { base = '' } = Astro.props;
 ---
 
 <header class="nav" role="banner">
-  <a class="nav__mark" href={`${base}#top`} aria-label="Genkidama — back to top">
+  <a class="nav__mark" href="#top" aria-label="Genkidama — back to top">
     <span class="nav__glyph" aria-hidden="true"></span>
     <span class="nav__word">GENKIDAMA</span>
     <span class="nav__by label label--2xs">by Eden AI</span>
@@ -19,7 +13,7 @@ const { base = '' } = Astro.props;
     <ol>
       {sections.map((s) => (
         <li>
-          <a href={`${base}#${s.id}`} data-section-link={s.id}>
+          <a href={`#${s.id}`} data-section-link={s.id}>
             <span class="nav__index">{s.index}</span>
             <span class="nav__title">{s.title}</span>
           </a>
@@ -29,30 +23,15 @@ const { base = '' } = Astro.props;
   </nav>
 
   <div class="nav__links">
-    {externalLinks.map((l, i) => (
-      <>
-        {/* Between the two links, a tiny profile projects a concentrated
-            stream from the MCP server side toward Eden AI. 
-        {i > 0 && (
-          <span class="nav__egg" aria-hidden="true">
-            <svg class="nav__egg-beam" viewBox="0 0 30 20" focusable="false">
-              <line class="nav__egg-track" x1="1" y1="6.8" x2="29" y2="6.8" vector-effect="non-scaling-stroke" />
-              <line class="nav__egg-packet" x1="23" y1="6.8" x2="29" y2="6.8" vector-effect="non-scaling-stroke" />
-              <circle class="nav__egg-charge" cx="29" cy="6.8" r="1.1" />
-            </svg>
-            <img class="nav__egg-figure" src="/goku-kamehameha.png" alt="" width="55" height="80" decoding="async" />
-          </span>
-        )}
-        */}
-        <a
-          class="label label--strong"
-          href={l.external ? l.href : `${base}${l.href}`}
-          target={l.external ? '_blank' : undefined}
-          rel={l.external ? 'noopener noreferrer' : undefined}
-        >
-          {l.label}{l.external && <span aria-hidden="true"> ↗</span>}
-        </a>
-      </>
+    {externalLinks.map((l) => (
+      <a
+        class="label label--strong"
+        href={l.href}
+        target={l.external ? '_blank' : undefined}
+        rel={l.external ? 'noopener noreferrer' : undefined}
+      >
+        {l.label}{l.external && <span aria-hidden="true"> ↗</span>}
+      </a>
     ))}
   </div>
 </header>
@@ -114,46 +93,21 @@ const { base = '' } = Astro.props;
   .nav__sections a:hover { color: var(--fg-0); }
   .nav__sections a.is-current { color: var(--fg-0); border-bottom-color: var(--energy-500); }
   .nav__index { color: var(--energy-500); }
+  /* Three sections: the titles fit from the medium breakpoint up. */
   .nav__title { display: none; }
-  @media (min-width: 1500px) { .nav__title { display: inline; } }
+  @media (min-width: 1100px) { .nav__title { display: inline; } }
 
   .nav__links { display: flex; gap: var(--space-5); }
   .nav__links a { white-space: nowrap; }
-
-  /* Easter egg: a concentrated stream from the MCP server side toward Eden AI.
-     Zero-height flex item so the row keeps its metrics; the glyph is centred
-     on the labels and eats half of each neighbouring gap. */
-  .nav__egg {
-    display: flex;
-    align-items: center;
-    align-self: center;
-    height: 0;
-    margin-inline: calc(var(--space-5) * -0.5);
-  }
-  .nav__egg-beam { display: block; height: 20px; width: auto; overflow: visible; }
-  .nav__egg-figure { display: block; height: 20px; width: auto; }
-  .nav__egg-track { stroke: var(--line-strong); stroke-width: 1; }
-  .nav__egg-packet {
-    stroke: var(--energy-500);
-    stroke-width: 1;
-    filter: drop-shadow(0 0 3px rgba(34, 211, 240, 0.7)); /* --glow-sm, tightened for a 1px stroke */
-    animation: nav-egg-travel 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-  }
-  .nav__egg-charge { fill: var(--energy-300); filter: drop-shadow(0 0 3px rgba(34, 211, 240, 0.8)); }
-  @keyframes nav-egg-travel {
-    from { transform: translateX(0); }
-    to { transform: translateX(-28px); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .nav__egg-packet { animation: none; }
-  }
 
   @media (max-width: 899px) {
     .nav { grid-template-columns: 1fr auto; gap: var(--space-4); }
     .nav__sections { display: none; }
     .nav__by { display: none; }
   }
+  /* Phone width: the mark and both links fit inside the gutters. */
   @media (max-width: 640px) {
-    .nav__egg { display: none; }
+    .nav__mark { letter-spacing: 0.14em; }
+    .nav__links { gap: var(--space-3); }
   }
 </style>

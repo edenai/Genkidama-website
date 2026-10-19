@@ -16,11 +16,8 @@ import Footer from '@/components/layout/Footer.astro';
 interface Props {
   title: string;
   description: string;
-  /** `details`: a secondary page without the stage; the rail is omitted and section links resolve to the home page. */
-  variant?: 'home' | 'details';
 }
-const { title, description, variant = 'home' } = Astro.props;
-const base = variant === 'home' ? '' : '/';
+const { title, description } = Astro.props;
 ---
 
 <!doctype html>
@@ -46,8 +43,8 @@ const base = variant === 'home' ? '' : '/';
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <Nav base={base} />
-    {variant === 'home' && <Rail />}
+    <Nav />
+    <Rail />
     <slot />
     <Footer />
     <script>

@@ -125,6 +125,10 @@ const gathering = {
   .story {
     position: relative;
     z-index: var(--z-content);
+    /* The Gathering's letters start far outside the viewport (transformed,
+       invisible); clip, not hidden, so the sticky block keeps working and
+       the page never gains a horizontal scroll width on phones. */
+    overflow-x: clip;
   }
   .phase {
     min-height: 100vh;
