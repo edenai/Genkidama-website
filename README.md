@@ -103,6 +103,11 @@ path (`mcp` / `native`, tokens `--series-*` / `--ink-*`), so a further system
 needs only: its rows in the folder, one entry in `ARM_PRESENTATION` in the
 script, its expected values in the script's cross-check, and optionally a
 `--series-<arm>` token. Nothing is shown for a system until its rows exist.
+The folder's *reference arms* (`manifest.reference_arms`: a further system run
+on the identical sample and copied for the same selected tasks, but not part
+of the selection rules, e.g. `gpt_native` = gpt-6.1-sol on OCR / vision) are
+read the same way and flagged `referenceArm` in the JSON; the page shows them
+on the benchmarks they ran on and compares them against the same reference.
 
 What the page shows: the benchmark's own score (accuracy with the official
 MMMU-Pro parser; SQuAD v1.1 F1 and exact match) and the two recorded cost

@@ -1,0 +1,190 @@
+---
+/**
+ * The film, framed like the page's other instruments: the hairline frame with
+ * corner ticks, a bar with a label, the picture, and one control. The video has
+ * a soundtrack and plays with sound on the visitor's click (never muted behind
+ * their back), plays inline and loops natively (the source's last frame is its first).
+ * The whole surface is one button: it plays, and while the film runs it pauses;
+ * the glyph is shown only when the film is not playing. The frame's hairline
+ * and ticks turn to energy only while the film plays. Interface state follows
+ * the media element's own events, so a pause the browser decides (a backgrounded
+ * phone, low power) shows up correctly too.
+ */
+import { film } from '@data/film';
+
+interface Props {
+  class?: string;
+}
+const { class: className } = Astro.props;
+---
+
+<figure class:list={['film frame', className]} data-film style={`--film-w: ${film.width}; --film-h: ${film.height};`}>
+  <figcaption class="frame__bar">
+    <span class="label"><span class="dot film__dot" aria-hidden="true"></span> the film</span>
+    <span class="label label--2xs film__hint">click to play with sound · click to pause</span>
+  </figcaption>
+
+  <div class="film__surface">
+    <video
+      class="film__video"
+      src={film.src}
+      poster={film.poster}
+      width={film.width}
+      height={film.height}
+      playsinline
+      loop
+      preload="metadata"
+      disablepictureinpicture
+      aria-hidden="true"
+      data-film-video
+    ></video>
+    <button class="film__toggle" type="button" aria-label="Play the film" data-film-toggle>
+      <span class="film__scrim" aria-hidden="true"></span>
+      <span class="film__glyph" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="28" height="28" focusable="false"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
+      </span>
+      <span class="film__cta label" aria-hidden="true" data-film-cta>play</span>
+    </button>
+    <p class="film__error label label--2xs" hidden data-film-error>film unavailable</p>
+    <p class="film__error film__error--blocked label label--2xs" hidden data-film-blocked>the browser blocked playback · click once more</p>
+  </div>
+</figure>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-film]')) {
+    const video = root.querySelector<HTMLVideoElement>('[data-film-video]');
+    const toggle = root.querySelector<HTMLButtonElement>('[data-film-toggle]');
+    const cta = root.querySelector<HTMLElement>('[data-film-cta]');
+    const error = root.querySelector<HTMLElement>('[data-film-error]');
+    const blocked = root.querySelector<HTMLElement>('[data-film-blocked]');
+    if (!video || !toggle || !cta || !error || !blocked) continue;
+
+    // Sound is part of the film: it is never muted here. Playback only ever starts from the visitor's click,
+    // which browsers accept for audible media; if a policy still refuses, the control says so and stays usable.
+    video.muted = false;
+    video.volume = 1;
+
+    const render = () => {
+      const playing = !video.paused && !video.ended;
+      root.classList.toggle('is-playing', playing);
+      toggle.setAttribute('aria-label', playing ? 'Pause the film' : 'Play the film with sound');
+      cta.textContent = !playing && video.currentTime > 0 ? 'resume' : 'play';
+      if (playing) blocked.hidden = true;
+    };
+    const fail = () => {
+      root.classList.add('is-error');
+      toggle.hidden = true;
+      error.hidden = false;
+    };
+
+    toggle.addEventListener('click', () => {
+      if (!video.paused) {
+        video.pause();
+        return;
+      }
+      video.muted = false;
+      video.play().catch((e: unknown) => {
+        // A medium the browser cannot decode is a failure. A policy refusal (NotAllowedError) is not
+        // worked around by muting: the film stays paused, the control stays, and a note asks for one
+        // more click. A play() interrupted by a pause() just leaves the film paused.
+        const name = (e as { name?: string })?.name;
+        if (name === 'NotSupportedError') fail();
+        else if (name === 'NotAllowedError') { blocked.hidden = false; render(); }
+        else render();
+      });
+    });
+    for (const type of ['play', 'playing', 'pause'] as const) video.addEventListener(type, render);
+    video.addEventListener('error', fail);
+    render();
+  }
+</script>
+
+<style>
+  .film__dot { transition: background var(--dur-base) var(--ease-out); }
+
+  /* The picture: its box is reserved from the configured size, so nothing moves when media arrives. */
+  .film__surface {
+    position: relative;
+    aspect-ratio: var(--film-w) / var(--film-h);
+    background: var(--bg-0);
+    overflow: hidden;
+  }
+  .film__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--bg-0);
+  }
+
+  /* One control over the whole surface. Its contents fade while the film plays; the target stays. */
+  .film__toggle {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: var(--space-3);
+    color: var(--fg-0);
+  }
+  .film__toggle:focus-visible {
+    outline: 2px solid var(--energy-500);
+    outline-offset: -3px;
+  }
+  .film__scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 7, 8, 0.38);
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .film__glyph {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    border: 1px solid var(--line-strong);
+    background: rgba(5, 7, 8, 0.72);
+    color: var(--energy-300);
+    transition: opacity var(--dur-base) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .film__glyph svg { display: block; margin-left: 3px; }
+  .film__cta {
+    position: relative;
+    color: var(--fg-1);
+    transition: opacity var(--dur-base) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .film__toggle:hover .film__glyph { border-color: var(--energy-500); color: var(--energy-100); }
+  .film__toggle:hover .film__cta { color: var(--energy-300); }
+
+  /* Playing: the control's contents disappear, the frame carries the energy (hairline and ticks, no glow). */
+  .film.is-playing .film__scrim,
+  .film.is-playing .film__glyph,
+  .film.is-playing .film__cta { opacity: 0; }
+  .film.is-playing { border-color: var(--line-energy); }
+  .film.is-playing::before,
+  .film.is-playing::after { border-color: var(--energy-500); }
+  .film.is-playing .film__dot { background: var(--energy-500); }
+
+  /* The medium cannot be played: the poster and the layout stay; the control goes, a plain note takes its corner. */
+  .film__error {
+    position: absolute;
+    inset-block-end: var(--space-3);
+    inset-inline-start: var(--space-3);
+    margin: 0;
+    padding: 2px 6px;
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    color: var(--fg-2);
+  }
+  .film__error[hidden] { display: none; }
+  .film__error--blocked { inset-inline-start: auto; inset-inline-end: var(--space-3); color: var(--fg-1); }
+
+  @media (max-width: 640px) {
+    .film__glyph { width: 3.75rem; height: 3.75rem; }
+    .film__hint { display: none; }   /* the control itself says play / resume; the bar stays one line on phones */
+  }
+</style>

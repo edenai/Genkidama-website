@@ -4,7 +4,9 @@
  * against the reference (native) route on the two things measured. The
  * indicators are the notebook's own, each labelled with its definition; the
  * sentence underneath is assembled from the same values and states only what
- * they show on the selected tasks.
+ * they show on the selected tasks. The sentence is written for the MCP route
+ * only: the selection rule is about it. A reference arm (a further native
+ * model shown on the same tasks) gets its indicators but no such sentence.
  */
 import { experiments, BENCHMARKS, comparedArms, fmt } from '@data/experiments';
 import { armStyle } from './chart';
@@ -13,6 +15,8 @@ const E = experiments;
 const arms = E.arms;
 const ref = arms[E.referenceArm];
 const compared = [...new Set(BENCHMARKS.flatMap((b) => comparedArms(b)))];
+// The selection rule ("at least as well as the native route") holds for the MCP route only.
+const ruleArms = compared.filter((arm) => arms[arm].path === 'mcp');
 const word = (r: number | null | undefined) => (r === null || r === undefined ? 'not comparable' : r < 1 ? 'lower' : r > 1 ? 'higher' : 'the same');
 const sentence = (arm: string) => {
   const parts = BENCHMARKS.map((b) => `${word(E.comparisons[b].versus[arm]?.gatewayCostRatio)} on ${E.benchmarks[b].title}`);
@@ -35,14 +39,16 @@ const sentence = (arm: string) => {
             <dl class="take__rows" style={armStyle(arm)}>
               <div><dt class="label label--2xs"><span class="take__swatch" aria-hidden="true"></span>{arms[arm].short} − {ref.short} · {E.benchmarks[b].scoreMetric} over scored runs</dt><dd class="num">{fmt.pp(c?.scoreDifference)}</dd></div>
               <div><dt class="label label--2xs">gateway charge per run · {arms[arm].short} ÷ {ref.short}</dt><dd class="num">{fmt.x(c?.gatewayCostRatio)}</dd></div>
-              <div><dt class="label label--2xs">gateway + specialist-tool ÷ {ref.short} gateway · totals</dt><dd class="num">{fmt.x(c?.totalCostRatioInclSpecialist)}</dd></div>
+              {E.benchmarks[b].summary[arm].runsWithSpecialistCost > 0 && (
+                <div><dt class="label label--2xs">gateway + specialist-tool ÷ {ref.short} gateway · totals</dt><dd class="num">{fmt.x(c?.totalCostRatioInclSpecialist)}</dd></div>
+              )}
             </dl>
           );
         })}
       </section>
     ))}
   </div>
-  {compared.map((arm) => <p class="take__sentence">{sentence(arm)}</p>)}
+  {ruleArms.map((arm) => <p class="take__sentence">{sentence(arm)}</p>)}
 </div>
 
 <style>

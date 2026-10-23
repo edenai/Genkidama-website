@@ -39,6 +39,8 @@
   --ink-native: var(--ember);     /* brighter text colour of each route */
   --ink-mcp: var(--energy-300);
   /* A further system gets `--series-<arm id>` / `--ink-<arm id>` here if it needs its own tint. */
+  --series-gpt_native: #7468d6;   /* second native model (reference arm, OCR / vision): own tint so the two native rows read apart; validated against both series above */
+  --ink-gpt_native: #b7acf5;
 
   /* --- Glow rules: glow is a consequence of energy, never decoration ---- */
   --glow-sm: 0 0 8px rgba(34, 211, 240, 0.55);

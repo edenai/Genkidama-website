@@ -13,7 +13,9 @@ import Marker from '@/components/visual/Marker.astro';
 import ArmLegend from '@/components/experiments/ArmLegend.astro';
 import ExperimentPanel from '@/components/experiments/ExperimentPanel.astro';
 import Takeaway from '@/components/experiments/Takeaway.astro';
+import FilmPlayer from '@/components/experiments/FilmPlayer.astro';
 import { experiments as E, ARMS, armsOf, evaluatedAt } from '@data/experiments';
+import { film } from '@data/film';
 import { MCP_DOCS_URL } from '@data/mcpCatalog';
 
 const ocr = E.benchmarks.mmmu_pro;
@@ -144,6 +146,19 @@ const cards = [
             <div><dt>Source</dt><dd><span class="mono">{E.provenance.repository}</span> · <span class="mono">{E.provenance.folder}</span>, assembled {E.provenance.assembledAt.slice(0, 10)}, runs <span class="mono">{E.provenance.sources.mmmu_pro.runName}</span> and <span class="mono">{E.provenance.sources.spoken_squad.runName}</span>; curated by <span class="mono">{E.provenance.curationScript}</span>, cross-checked against <span class="mono">{E.provenance.notebook}</span>.</dd></div>
           </dl>
         </details>
+      </div>
+    </div>
+
+    {/* The film: the epilogue, after the results. Copy and assets come from data/film.ts. */}
+    <div class="experiments__part" id="film">
+      <div class="section__head experiments__subhead">
+        <Marker index="epilogue" title="the film" />
+        <span class="label label--2xs">{film.duration} s · with sound · loops</span>
+      </div>
+      <div class="grid">
+        <h3 id="film-title" class="display display--lg" style="grid-column: 1 / span 5" data-reveal>{film.heading}</h3>
+        <p class="prose experiments__film-text" style="grid-column: 7 / span 6" data-reveal data-reveal-delay="0.1">{film.text}</p>
+        <div style="grid-column: 1 / -1" data-reveal><FilmPlayer /></div>
 
         <div class="experiments__actions" style="grid-column: 1 / -1" data-reveal>
           <a class="btn btn--solid" href="https://www.edenai.co" target="_blank" rel="noopener noreferrer">Eden AI ↗</a>
@@ -200,6 +215,7 @@ const cards = [
   .experiments__method dt { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--energy-500); padding-top: 0.3em; }
   .experiments__method dd { margin: 0; }
   .experiments__method .mono { overflow-wrap: anywhere; color: var(--fg-0); }
+  .experiments__film-text { align-self: end; }
   .experiments__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-top: var(--space-6); border-top: 1px solid var(--line); }
 
   @media (max-width: 899px) {

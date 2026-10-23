@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-15T09:08:40.533Z",
+ "generatedAt": "2026-10-20T09:13:17.461Z",
  "provenance": {
   "folder": "results/raw/combined_showcase_v2",
   "repository": "Genkidama-project-comparisons",
-  "assembledAt": "2026-10-09T08:20:14+00:00",
+  "assembledAt": "2026-10-19T11:14:47+00:00",
   "codeCommit": "ef33aea3ddf2800e49227470306602f9f4ef5704",
   "notebook": "notebooks/combined_showcase_v2_analysis.ipynb",
   "sources": {
@@ -20,6 +20,18 @@
     "codeCommit": "edc66dd2e64a2aa57d7894de4024321911e36790"
    }
   },
+  "referenceSources": {
+   "mmmu_pro": {
+    "gpt_native": {
+     "runName": "mmmu_pro_v2_gpt61sol",
+     "evaluatedAt": "2026-10-19T11:02:02+00:00",
+     "evaluationRows": 100,
+     "rowsCopied": 50,
+     "codeCommit": "ef33aea3ddf2800e49227470306602f9f4ef5704",
+     "note": "reference arm: NOT part of the selection rules; shown on the selected tasks only. The selection (ids, ranks, tiers, reasons) is identical with or without it."
+    }
+   }
+  },
   "curationScript": "scripts/curate-showcase.mjs",
   "crossCheckedAgainstNotebook": true
  },
@@ -33,6 +45,7 @@
    "apiModelId": "scaleway/deepseek-v4-flash-0731",
    "path": "mcp",
    "route": "text_only_plus_mcp",
+   "referenceArm": false,
    "inputModalities": [
     "text"
    ],
@@ -45,6 +58,7 @@
    "apiModelId": "google/gemini-3.8-flash",
    "path": "native",
    "route": "native_no_mcp",
+   "referenceArm": false,
    "inputModalities": [
     "text",
     "image",
@@ -53,6 +67,21 @@
     "audio"
    ],
    "description": "natively multimodal model; image or audio delivered as a native content part; no tools"
+  },
+  "gpt_native": {
+   "label": "GPT native",
+   "short": "GPT",
+   "model": "gpt-6.1-sol",
+   "apiModelId": "openai/gpt-6.1-sol",
+   "path": "native",
+   "route": "native_no_mcp",
+   "referenceArm": true,
+   "inputModalities": [
+    "file",
+    "image",
+    "text"
+   ],
+   "description": "natively multimodal model; image or audio delivered as a native content part; no tools; OCR / vision only"
   }
  },
  "selection": {
@@ -128,6 +157,7 @@
      "route": "text_only_plus_mcp",
      "path": "mcp",
      "offerMcpTools": true,
+     "referenceArm": false,
      "inputModalities": [
       "text"
      ],
@@ -140,6 +170,7 @@
      "route": "native_no_mcp",
      "path": "native",
      "offerMcpTools": false,
+     "referenceArm": false,
      "inputModalities": [
       "text",
       "image",
@@ -148,6 +179,21 @@
       "audio"
      ],
      "delivery": "natively multimodal model; image delivered as a native content part; NO tools offered (native capability reference)"
+    },
+    {
+     "arm": "gpt_native",
+     "model": "gpt-6.1-sol",
+     "apiModelId": "openai/gpt-6.1-sol",
+     "route": "native_no_mcp",
+     "path": "native",
+     "offerMcpTools": false,
+     "referenceArm": true,
+     "inputModalities": [
+      "file",
+      "image",
+      "text"
+     ],
+     "delivery": "second natively multimodal reference model (OpenAI GPT family); image delivered as a native content part; NO tools offered (same route as gemini_native, run in its own folder on the identical sample)"
     }
    ],
    "tiers": [
@@ -276,6 +322,29 @@
      "deepseek_not_scored": 44,
      "gemini_not_scored": 1,
      "neither_scored": 0
+    },
+    "referenceArms": {
+     "gpt_native": {
+      "run_name": "mmmu_pro_v2_gpt61sol",
+      "label": "gpt-6.1-sol",
+      "api_model_id": "openai/gpt-6.1-sol",
+      "rows": 100,
+      "outcomes": {
+       "correct": 85,
+       "incorrect": 15
+      },
+      "scored": 100,
+      "score_over_scored": 0.85,
+      "score_over_all_rows": 0.85,
+      "total_latency_mean_s": 9.9939191,
+      "total_tokens_mean": 4061.14,
+      "prompt_tokens_mean": 3642.08,
+      "completion_tokens_mean": 419.06,
+      "gateway_cost_usd_mean": 0.0115,
+      "gateway_cost_usd_total": 1.1475,
+      "specialist_tool_cost_usd_total": 0,
+      "mcp_usage_rate": 0
+     }
     }
    },
    "summary": {
@@ -339,6 +408,37 @@
      "specialistToolCostUsdMean": null,
      "runsWithSpecialistCost": 0,
      "usdPer1kTokens": 0.00232,
+     "mcpUsageRate": 0,
+     "meanToolCalls": 0
+    },
+    "gpt_native": {
+     "runs": 50,
+     "scored": 50,
+     "scoreOverScored": 0.9,
+     "scoreOverAllRuns": 0.9,
+     "exactMatches": 45,
+     "outcomes": {
+      "correct": 45,
+      "incorrect": 5
+     },
+     "latencyMeanS": 10.3,
+     "latencyMedianS": 8.3,
+     "latencyP95S": 17.1,
+     "modelLatencyMeanS": 9.5,
+     "toolLatencyMeanS": 0,
+     "roundsMean": 1,
+     "promptTokensMean": 3498,
+     "completionTokensMean": 447,
+     "totalTokensMean": 3945,
+     "totalTokensMedian": 2768,
+     "totalTokensSum": 197244,
+     "gatewayCostUsdMean": 0.01146,
+     "gatewayCostUsdTotal": 0.5732,
+     "runsWithGatewayCost": 50,
+     "specialistToolCostUsdTotal": 0,
+     "specialistToolCostUsdMean": null,
+     "runsWithSpecialistCost": 0,
+     "usdPer1kTokens": 0.00324,
      "mcpUsageRate": 0,
      "meanToolCalls": 0
     }
@@ -423,6 +523,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 11.06,
+       "modelLatencyS": 10.27,
+       "toolLatencyS": null,
+       "promptTokens": 7415,
+       "completionTokens": 602,
+       "totalTokens": 8017,
+       "gatewayCostUsd": 0.02085,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -461,6 +576,21 @@
        "completionTokens": 718,
        "totalTokens": 1945,
        "gatewayCostUsd": 0.003613,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.62,
+       "modelLatencyS": 6.9,
+       "toolLatencyS": null,
+       "promptTokens": 1943,
+       "completionTokens": 298,
+       "totalTokens": 2241,
+       "gatewayCostUsd": 0.006866,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -509,6 +639,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 6.64,
+       "modelLatencyS": 5.96,
+       "toolLatencyS": null,
+       "promptTokens": 4911,
+       "completionTokens": 267,
+       "totalTokens": 5178,
+       "gatewayCostUsd": 0.012492,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -547,6 +692,21 @@
        "completionTokens": 7186,
        "totalTokens": 8438,
        "gatewayCostUsd": 0.027886,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 38.64,
+       "modelLatencyS": 34.67,
+       "toolLatencyS": null,
+       "promptTokens": 3646,
+       "completionTokens": 1757,
+       "totalTokens": 5403,
+       "gatewayCostUsd": 0.024862,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -604,6 +764,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "incorrect",
+       "score": 0,
+       "latencyS": 11.4,
+       "modelLatencyS": 10.8,
+       "toolLatencyS": null,
+       "promptTokens": 970,
+       "completionTokens": 476,
+       "totalTokens": 1446,
+       "gatewayCostUsd": 0.0067,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -644,6 +819,21 @@
        "completionTokens": 8755,
        "totalTokens": 9961,
        "gatewayCostUsd": 0.033736,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 11.65,
+       "modelLatencyS": 10.76,
+       "toolLatencyS": null,
+       "promptTokens": 1574,
+       "completionTokens": 575,
+       "totalTokens": 2149,
+       "gatewayCostUsd": 0.008898,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -690,6 +880,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.45,
+       "modelLatencyS": 7.79,
+       "toolLatencyS": null,
+       "promptTokens": 4154,
+       "completionTokens": 396,
+       "totalTokens": 4550,
+       "gatewayCostUsd": 0.012268,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -728,6 +933,21 @@
        "completionTokens": 2029,
        "totalTokens": 3272,
        "gatewayCostUsd": 0.008541,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 11.74,
+       "modelLatencyS": 11.03,
+       "toolLatencyS": null,
+       "promptTokens": 1540,
+       "completionTokens": 530,
+       "totalTokens": 2070,
+       "gatewayCostUsd": 0.00838,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -774,6 +994,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.98,
+       "modelLatencyS": 7.22,
+       "toolLatencyS": null,
+       "promptTokens": 3381,
+       "completionTokens": 323,
+       "totalTokens": 3704,
+       "gatewayCostUsd": 0.009992,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -812,6 +1047,21 @@
        "completionTokens": 1726,
        "totalTokens": 2946,
        "gatewayCostUsd": 0.007388,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.43,
+       "modelLatencyS": 7.69,
+       "toolLatencyS": null,
+       "promptTokens": 2869,
+       "completionTokens": 406,
+       "totalTokens": 3275,
+       "gatewayCostUsd": 0.009798,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -858,6 +1108,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 6.63,
+       "modelLatencyS": 6.14,
+       "toolLatencyS": null,
+       "promptTokens": 2365,
+       "completionTokens": 318,
+       "totalTokens": 2683,
+       "gatewayCostUsd": 0.00791,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -900,6 +1165,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 6.76,
+       "modelLatencyS": 6.14,
+       "toolLatencyS": null,
+       "promptTokens": 3804,
+       "completionTokens": 209,
+       "totalTokens": 4013,
+       "gatewayCostUsd": 0.009698,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -938,6 +1218,21 @@
        "completionTokens": 3096,
        "totalTokens": 4342,
        "gatewayCostUsd": 0.012545,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 15.19,
+       "modelLatencyS": 14.14,
+       "toolLatencyS": null,
+       "promptTokens": 1237,
+       "completionTokens": 794,
+       "totalTokens": 2031,
+       "gatewayCostUsd": 0.010414,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -985,6 +1280,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 15.53,
+       "modelLatencyS": 14.86,
+       "toolLatencyS": null,
+       "promptTokens": 5849,
+       "completionTokens": 824,
+       "totalTokens": 6673,
+       "gatewayCostUsd": 0.019938,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1023,6 +1333,21 @@
        "completionTokens": 1193,
        "totalTokens": 2440,
        "gatewayCostUsd": 0.005409,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.36,
+       "modelLatencyS": 7.53,
+       "toolLatencyS": null,
+       "promptTokens": 1345,
+       "completionTokens": 387,
+       "totalTokens": 1732,
+       "gatewayCostUsd": 0.00656,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1069,6 +1394,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.84,
+       "modelLatencyS": 6.83,
+       "toolLatencyS": null,
+       "promptTokens": 1755,
+       "completionTokens": 211,
+       "totalTokens": 1966,
+       "gatewayCostUsd": 0.00562,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1108,6 +1448,21 @@
        "completionTokens": 1531,
        "totalTokens": 2760,
        "gatewayCostUsd": 0.006663,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.8,
+       "modelLatencyS": 6.62,
+       "toolLatencyS": null,
+       "promptTokens": 1138,
+       "completionTokens": 272,
+       "totalTokens": 1410,
+       "gatewayCostUsd": 0.004996,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1156,6 +1511,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 24.51,
+       "modelLatencyS": 23.86,
+       "toolLatencyS": null,
+       "promptTokens": 4921,
+       "completionTokens": 1113,
+       "totalTokens": 6034,
+       "gatewayCostUsd": 0.020972,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1194,6 +1564,21 @@
        "completionTokens": 1930,
        "totalTokens": 3159,
        "gatewayCostUsd": 0.008159,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 13.16,
+       "modelLatencyS": 12.71,
+       "toolLatencyS": null,
+       "promptTokens": 1523,
+       "completionTokens": 663,
+       "totalTokens": 2186,
+       "gatewayCostUsd": 0.009676,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1242,6 +1627,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 12.59,
+       "modelLatencyS": 10.57,
+       "toolLatencyS": null,
+       "promptTokens": 6528,
+       "completionTokens": 390,
+       "totalTokens": 6918,
+       "gatewayCostUsd": 0.016956,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1284,6 +1684,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 9.21,
+       "modelLatencyS": 8.23,
+       "toolLatencyS": null,
+       "promptTokens": 2445,
+       "completionTokens": 485,
+       "totalTokens": 2930,
+       "gatewayCostUsd": 0.00974,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1322,6 +1737,21 @@
        "completionTokens": 992,
        "totalTokens": 2236,
        "gatewayCostUsd": 0.004653,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.65,
+       "modelLatencyS": 6.87,
+       "toolLatencyS": null,
+       "promptTokens": 1621,
+       "completionTokens": 295,
+       "totalTokens": 1916,
+       "gatewayCostUsd": 0.006192,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1370,6 +1800,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.9,
+       "modelLatencyS": 7.49,
+       "toolLatencyS": null,
+       "promptTokens": 1034,
+       "completionTokens": 425,
+       "totalTokens": 1459,
+       "gatewayCostUsd": 0.006318,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1408,6 +1853,21 @@
        "completionTokens": 1209,
        "totalTokens": 2418,
        "gatewayCostUsd": 0.005441,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.31,
+       "modelLatencyS": 7.68,
+       "toolLatencyS": null,
+       "promptTokens": 1824,
+       "completionTokens": 397,
+       "totalTokens": 2221,
+       "gatewayCostUsd": 0.007618,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1456,6 +1916,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 9.03,
+       "modelLatencyS": 8.5,
+       "toolLatencyS": null,
+       "promptTokens": 5570,
+       "completionTokens": 425,
+       "totalTokens": 5995,
+       "gatewayCostUsd": 0.01539,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1494,6 +1969,21 @@
        "completionTokens": 1835,
        "totalTokens": 3054,
        "gatewayCostUsd": 0.007796,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.74,
+       "modelLatencyS": 8.06,
+       "toolLatencyS": null,
+       "promptTokens": 10215,
+       "completionTokens": 365,
+       "totalTokens": 10580,
+       "gatewayCostUsd": 0.02408,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1540,6 +2030,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 5.18,
+       "modelLatencyS": 4.71,
+       "toolLatencyS": null,
+       "promptTokens": 589,
+       "completionTokens": 168,
+       "totalTokens": 757,
+       "gatewayCostUsd": 0.002858,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1578,6 +2083,21 @@
        "completionTokens": 630,
        "totalTokens": 1837,
        "gatewayCostUsd": 0.003268,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 6.74,
+       "modelLatencyS": 4.53,
+       "toolLatencyS": null,
+       "promptTokens": 1575,
+       "completionTokens": 133,
+       "totalTokens": 1708,
+       "gatewayCostUsd": 0.00448,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1626,6 +2146,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 15.78,
+       "modelLatencyS": 15.19,
+       "toolLatencyS": null,
+       "promptTokens": 6014,
+       "completionTokens": 778,
+       "totalTokens": 6792,
+       "gatewayCostUsd": 0.019808,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1664,6 +2199,21 @@
        "completionTokens": 1132,
        "totalTokens": 2365,
        "gatewayCostUsd": 0.00517,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.95,
+       "modelLatencyS": 7.17,
+       "toolLatencyS": null,
+       "promptTokens": 5869,
+       "completionTokens": 244,
+       "totalTokens": 6113,
+       "gatewayCostUsd": 0.014178,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1712,6 +2262,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 5.79,
+       "modelLatencyS": 5.09,
+       "toolLatencyS": null,
+       "promptTokens": 1608,
+       "completionTokens": 184,
+       "totalTokens": 1792,
+       "gatewayCostUsd": 0.005056,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1750,6 +2315,21 @@
        "completionTokens": 422,
        "totalTokens": 1650,
        "gatewayCostUsd": 0.002504,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.57,
+       "modelLatencyS": 6.3,
+       "toolLatencyS": null,
+       "promptTokens": 6948,
+       "completionTokens": 114,
+       "totalTokens": 7062,
+       "gatewayCostUsd": 0.015036,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1797,6 +2377,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.79,
+       "modelLatencyS": 7.29,
+       "toolLatencyS": null,
+       "promptTokens": 1153,
+       "completionTokens": 369,
+       "totalTokens": 1522,
+       "gatewayCostUsd": 0.005996,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1837,6 +2432,21 @@
        "completionTokens": 839,
        "totalTokens": 2098,
        "gatewayCostUsd": 0.00409,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 6.99,
+       "modelLatencyS": 6.29,
+       "toolLatencyS": null,
+       "promptTokens": 7304,
+       "completionTokens": 288,
+       "totalTokens": 7592,
+       "gatewayCostUsd": 0.017488,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -1887,6 +2497,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.16,
+       "modelLatencyS": 6.62,
+       "toolLatencyS": null,
+       "promptTokens": 2253,
+       "completionTokens": 368,
+       "totalTokens": 2621,
+       "gatewayCostUsd": 0.008186,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1931,6 +2556,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 18.25,
+       "modelLatencyS": 17.31,
+       "toolLatencyS": null,
+       "promptTokens": 6618,
+       "completionTokens": 1143,
+       "totalTokens": 7761,
+       "gatewayCostUsd": 0.024666,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -1971,6 +2611,21 @@
        "completionTokens": 799,
        "totalTokens": 2024,
        "gatewayCostUsd": 0.003915,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.09,
+       "modelLatencyS": 7.27,
+       "toolLatencyS": null,
+       "promptTokens": 9866,
+       "completionTokens": 192,
+       "totalTokens": 10058,
+       "gatewayCostUsd": 0.021652,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -2021,6 +2676,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "incorrect",
+       "score": 0,
+       "latencyS": 6.6,
+       "modelLatencyS": 6.13,
+       "toolLatencyS": null,
+       "promptTokens": 1713,
+       "completionTokens": 219,
+       "totalTokens": 1932,
+       "gatewayCostUsd": 0.005616,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2067,6 +2737,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.26,
+       "modelLatencyS": 7.77,
+       "toolLatencyS": null,
+       "promptTokens": 764,
+       "completionTokens": 438,
+       "totalTokens": 1202,
+       "gatewayCostUsd": 0.005908,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2107,6 +2792,21 @@
        "completionTokens": 701,
        "totalTokens": 1938,
        "gatewayCostUsd": 0.003557,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 6.14,
+       "modelLatencyS": 5.29,
+       "toolLatencyS": null,
+       "promptTokens": 3432,
+       "completionTokens": 138,
+       "totalTokens": 3570,
+       "gatewayCostUsd": 0.008244,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -2159,6 +2859,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 8.68,
+       "modelLatencyS": 8.18,
+       "toolLatencyS": null,
+       "promptTokens": 5064,
+       "completionTokens": 449,
+       "totalTokens": 5513,
+       "gatewayCostUsd": 0.014618,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2207,6 +2922,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 12.81,
+       "modelLatencyS": 12.28,
+       "toolLatencyS": null,
+       "promptTokens": 1102,
+       "completionTokens": 753,
+       "totalTokens": 1855,
+       "gatewayCostUsd": 0.009734,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2251,6 +2981,21 @@
        "completionTokens": 959,
        "totalTokens": 2165,
        "gatewayCostUsd": 0.004501,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 5.82,
+       "modelLatencyS": 5.04,
+       "toolLatencyS": null,
+       "promptTokens": 1574,
+       "completionTokens": 192,
+       "totalTokens": 1766,
+       "gatewayCostUsd": 0.005068,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -2305,6 +3050,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 15.03,
+       "modelLatencyS": 14.42,
+       "toolLatencyS": null,
+       "promptTokens": 2206,
+       "completionTokens": 646,
+       "totalTokens": 2852,
+       "gatewayCostUsd": 0.010872,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2351,6 +3111,21 @@
        "completionTokens": 2109,
        "totalTokens": 3315,
        "gatewayCostUsd": 0.008813,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 13.44,
+       "modelLatencyS": 12.54,
+       "toolLatencyS": null,
+       "promptTokens": 1576,
+       "completionTokens": 527,
+       "totalTokens": 2103,
+       "gatewayCostUsd": 0.008422,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -2409,6 +3184,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 7.67,
+       "modelLatencyS": 5.92,
+       "toolLatencyS": null,
+       "promptTokens": 6785,
+       "completionTokens": 146,
+       "totalTokens": 6931,
+       "gatewayCostUsd": 0.01503,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2457,6 +3247,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "incorrect",
+       "score": 0,
+       "latencyS": 15.2,
+       "modelLatencyS": 14.69,
+       "toolLatencyS": null,
+       "promptTokens": 1646,
+       "completionTokens": 693,
+       "totalTokens": 2339,
+       "gatewayCostUsd": 0.010222,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2499,6 +3304,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "incorrect",
+       "score": 0,
+       "latencyS": 6.93,
+       "modelLatencyS": 6.17,
+       "toolLatencyS": null,
+       "promptTokens": 6297,
+       "completionTokens": 261,
+       "totalTokens": 6558,
+       "gatewayCostUsd": 0.015204,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     },
@@ -2537,6 +3357,21 @@
        "completionTokens": 817,
        "totalTokens": 2061,
        "gatewayCostUsd": 0.003997,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "incorrect",
+       "score": 0,
+       "latencyS": 4.84,
+       "modelLatencyS": 4.28,
+       "toolLatencyS": null,
+       "promptTokens": 679,
+       "completionTokens": 167,
+       "totalTokens": 846,
+       "gatewayCostUsd": 0.003028,
        "specialistToolCostUsd": null,
        "toolCalls": 0,
        "toolSequence": [],
@@ -2588,6 +3423,21 @@
        "toolCalls": 0,
        "toolSequence": [],
        "rounds": 1
+      },
+      "gpt_native": {
+       "outcome": "correct",
+       "score": 1,
+       "latencyS": 14,
+       "modelLatencyS": 13.12,
+       "toolLatencyS": null,
+       "promptTokens": 6699,
+       "completionTokens": 520,
+       "totalTokens": 7219,
+       "gatewayCostUsd": 0.018598,
+       "specialistToolCostUsd": null,
+       "toolCalls": 0,
+       "toolSequence": [],
+       "rounds": 1
       }
      }
     }
@@ -2629,6 +3479,7 @@
      "route": "text_only_plus_mcp",
      "path": "mcp",
      "offerMcpTools": true,
+     "referenceArm": false,
      "inputModalities": [
       "text"
      ],
@@ -2641,6 +3492,7 @@
      "route": "native_audio_no_mcp",
      "path": "native",
      "offerMcpTools": false,
+     "referenceArm": false,
      "inputModalities": [
       "text",
       "image",
@@ -2761,7 +3613,8 @@
      "deepseek_not_scored": 0,
      "gemini_not_scored": 0,
      "neither_scored": 0
-    }
+    },
+    "referenceArms": {}
    },
    "summary": {
     "deepseek_mcp": {
@@ -5392,6 +6245,14 @@
      "latencyRatio": 3.7,
      "tokensRatio": 4.8,
      "usdPer1kTokensRatio": 0.19
+    },
+    "gpt_native": {
+     "scoreDifference": 0.0633,
+     "gatewayCostRatio": 1.53,
+     "totalCostRatioInclSpecialist": 1.54,
+     "latencyRatio": 0.61,
+     "tokensRatio": 1.33,
+     "usdPer1kTokensRatio": 1.4
     }
    }
   },

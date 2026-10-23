@@ -24,6 +24,13 @@
  * ARM_PRESENTATION below and its expected values to the cross-check; nothing
  * else in the site needs to know the arm by name.
  *
+ * Besides the selection arms (`manifest.arms`, the two systems the selection
+ * rules compare), the folder may carry *reference arms*
+ * (`manifest.reference_arms`): a further system run on the identical sample,
+ * whose rows were copied for exactly the same selected tasks, but which took
+ * no part in the selection rules. It is shown on those tasks like any other
+ * arm and flagged `referenceArm` so the page can say so.
+ *
  * Usage:
  *   node scripts/curate-showcase.mjs [path/to/combined_showcase_v2]
  */
@@ -61,8 +68,11 @@ const manifest = readJson(resolve(SOURCE, 'manifest.json'));
 const context = readJson(resolve(SOURCE, 'full_run_context.json'));
 const selection = readJsonl(resolve(SOURCE, 'selection.jsonl'));
 
-// The systems compared, as the folder names them. Order is the manifest's.
-const ARMS = manifest.arms;
+// The systems compared, as the folder names them. Order is the manifest's:
+// selection arms first, then any reference arm (run on the same selected
+// tasks, not part of the selection rules).
+const REFERENCE_ARMS = Object.fromEntries(Object.entries(manifest.reference_arms ?? {}).map(([bench, arms]) => [bench, Object.keys(arms)]));
+const ARMS = [...manifest.arms, ...new Set(Object.values(REFERENCE_ARMS).flat().filter((a) => !manifest.arms.includes(a)))];
 // Same as analysis.py: which outcomes count as "scored".
 const SCORED = { mmmu_pro: new Set(['correct', 'incorrect']), spoken_squad: new Set(['answered']) };
 
@@ -71,6 +81,7 @@ const SCORED = { mmmu_pro: new Set(['correct', 'incorrect']), spoken_squad: new 
 const ARM_PRESENTATION = {
   deepseek_mcp: { label: 'DeepSeek + MCP', short: 'DeepSeek + MCP' },
   gemini_native: { label: 'Gemini native', short: 'Gemini' },
+  gpt_native: { label: 'GPT native', short: 'GPT' },
 };
 
 // ---------------------------------------------------------------------------
@@ -214,6 +225,8 @@ for (const bench of BENCHMARKS) {
     route: a.route,
     path: a.offer_mcp_tools ? 'mcp' : 'native',
     offerMcpTools: !!a.offer_mcp_tools,
+    // Reference arm: run on the same selected tasks, not part of the selection rules.
+    referenceArm: !!a.reference_arm,
     inputModalities: a.input_modalities ?? null,
     delivery: a.description ?? null,
   }));
@@ -263,6 +276,8 @@ for (const bench of BENCHMARKS) {
       perArm: context[bench].per_arm,
       pairMatrix: context[bench].pair_matrix,
       comparison: context[bench].comparison,
+      // Complete run of each reference arm on the identical sample (its own folder).
+      referenceArms: context[bench].reference_arms ?? {},
     },
     summary,
     toolUsage: usage,
@@ -270,9 +285,11 @@ for (const bench of BENCHMARKS) {
   };
 }
 
-// The reference arm for comparisons: the native route (no tools offered). The
-// selection rules of the folder are stated relative to it as well.
-const REFERENCE_ARM = ARMS.find((a) => armMeta[a]?.path === 'native');
+// The reference arm for comparisons: the native route (no tools offered) the
+// selection rules of the folder are stated against; a further native system
+// flagged as a reference arm in the manifest is compared against it like any
+// other arm, never used as the baseline.
+const REFERENCE_ARM = ARMS.find((a) => armMeta[a]?.path === 'native' && !armMeta[a]?.referenceArm);
 if (!REFERENCE_ARM) throw new Error('no native (reference) arm found in the run manifests');
 
 // Comparisons as the notebook defines them (ratio_table): arm ÷ reference on
@@ -301,14 +318,17 @@ for (const bench of Object.keys(benchmarks)) {
 
 // ---------------------------------------------------------------------------
 // Cross-check against the executed notebook (values copied from the rendered
-// cross-benchmark summary, ratio, tool-usage and speech-tool tables of
-// `notebooks/combined_showcase_v2_analysis.ipynb` on 2026-10-09). A mismatch
-// means the folder changed since the notebook ran, or a definition drifted:
-// stop and investigate.
+// cross-benchmark summary, ratio, pairwise-ratio, tool-usage and speech-tool
+// tables of `notebooks/combined_showcase_v2_analysis.ipynb`, executed on
+// 2026-10-19 after the folder was re-assembled with the `gpt_native` reference
+// arm). A mismatch means the folder changed since the notebook ran, or a
+// definition drifted: stop and investigate.
 const expected = {
   mmmu_pro: {
     deepseek_mcp: { runs: 50, scored: 50, scoreOverScored: 0.94, scoreOverAllRuns: 0.94, exactMatches: 47, latencyMeanS: 62.1, latencyMedianS: 29.9, modelLatencyMeanS: 52.1, toolLatencyMeanS: 9.1, roundsMean: 3.06, promptTokensMean: 10994, completionTokensMean: 3285, totalTokensMean: 14278, totalTokensSum: 713911, gatewayCostUsdMean: 0.00652, gatewayCostUsdTotal: 0.3261, specialistToolCostUsdTotal: 0.5059, usdPer1kTokens: 0.00043, mcpUsageRate: 1, meanToolCalls: 3.14 },
     gemini_native: { runs: 50, scored: 49, scoreOverScored: 0.8367, scoreOverAllRuns: 0.82, exactMatches: 41, latencyMeanS: 16.8, latencyMedianS: 13.3, modelLatencyMeanS: 16.8, toolLatencyMeanS: 0, roundsMean: 1, promptTokensMean: 1229, completionTokensMean: 1745, totalTokensMean: 2974, totalTokensSum: 148713, gatewayCostUsdMean: 0.00747, gatewayCostUsdTotal: 0.3733, specialistToolCostUsdTotal: 0, usdPer1kTokens: 0.00232, mcpUsageRate: 0, meanToolCalls: 0 },
+    // Reference arm (gpt-6.1-sol, native image, no tools) on the same 50 selected tasks.
+    gpt_native: { runs: 50, scored: 50, scoreOverScored: 0.9, scoreOverAllRuns: 0.9, exactMatches: 45, latencyMeanS: 10.3, latencyMedianS: 8.3, modelLatencyMeanS: 9.5, toolLatencyMeanS: 0, roundsMean: 1, promptTokensMean: 3498, completionTokensMean: 447, totalTokensMean: 3945, totalTokensSum: 197244, gatewayCostUsdMean: 0.01146, gatewayCostUsdTotal: 0.5732, specialistToolCostUsdTotal: 0, usdPer1kTokens: 0.00324, mcpUsageRate: 0, meanToolCalls: 0 },
   },
   spoken_squad: {
     deepseek_mcp: { runs: 50, scored: 50, scoreOverScored: 0.9812, scoreOverAllRuns: 0.9812, exactMatches: 47, latencyMeanS: 24.4, latencyMedianS: 21.9, modelLatencyMeanS: 15.8, toolLatencyMeanS: 7.4, roundsMean: 4.04, promptTokensMean: 14230, completionTokensMean: 413, totalTokensMean: 14643, totalTokensSum: 732149, gatewayCostUsdMean: 0.00469, gatewayCostUsdTotal: 0.2347, specialistToolCostUsdTotal: 0.389, usdPer1kTokens: 0.00031, mcpUsageRate: 1, meanToolCalls: 3.18, werMean: 0.0295, werMedian: 0.0224, transcriptsWithWer: 50, asrBaselineWerMean: 0.2532, runsCallingSpeechTool: 50, speechToolErroringCalls: 0 },
@@ -318,6 +338,18 @@ const expected = {
   comparisons: {
     mmmu_pro: { deepseek_mcp: { scoreDifference: 0.1033, latencyRatio: 3.7, tokensRatio: 4.8, gatewayCostRatio: 0.87, usdPer1kTokensRatio: 0.19, totalCostRatioInclSpecialist: 2.23 } },
     spoken_squad: { deepseek_mcp: { scoreDifference: 0.0262, latencyRatio: 3.64, tokensRatio: 6.7, gatewayCostRatio: 1.75, usdPer1kTokensRatio: 0.27, totalCostRatioInclSpecialist: 4.66 } },
+  },
+  // Notebook pairwise ratio table ("every pair of arms, reference arm included"):
+  // score difference = a - b, ratios = a / b, total cost = (gateway + specialist)
+  // of a / (gateway + specialist) of b. The page states the reference arm
+  // against Gemini native (the inverse of the second row); both are computed
+  // from the same cross-checked summaries.
+  pairs: {
+    mmmu_pro: [
+      { a: 'deepseek_mcp', b: 'gpt_native', scoreDifference: 0.04, latencyRatio: 6.03, tokensRatio: 3.62, gatewayCostRatio: 0.57, usdPer1kTokensRatio: 0.13, totalCostRatioInclSpecialist: 1.45 },
+      { a: 'gemini_native', b: 'gpt_native', scoreDifference: -0.0633, latencyRatio: 1.63, tokensRatio: 0.75, gatewayCostRatio: 0.65, usdPer1kTokensRatio: 0.72, totalCostRatioInclSpecialist: 0.65 },
+    ],
+    spoken_squad: [],
   },
   // DeepSeek + MCP tool usage per benchmark (notebook section 7).
   toolUsage: {
@@ -329,7 +361,21 @@ const expected = {
     mmmu_pro: { pairedTasks: 94, deepseek_better: 5, equal: 44, gemini_better: 0, deepseek_not_scored: 44, gemini_not_scored: 1 },
     spoken_squad: { pairedTasks: 100, deepseek_better: 8, equal: 77, gemini_better: 15, deepseek_not_scored: 0, gemini_not_scored: 0 },
   },
+  // Complete run of each reference arm on the identical sample (notebook section 3).
+  fullRunReference: {
+    mmmu_pro: { gpt_native: { rows: 100, scored: 100, score_over_scored: 0.85, score_over_all_rows: 0.85, total_latency_mean_s: 10.0, total_tokens_mean: 4061.14, gateway_cost_usd_mean: 0.0115, gateway_cost_usd_total: 1.1475, specialist_tool_cost_usd_total: 0, mcp_usage_rate: 0 } },
+    spoken_squad: {},
+  },
 };
+// Pairwise figures as the notebook's pairwise table defines them (a over b).
+const pairFigures = (sa, sb) => ({
+  scoreDifference: round(sa.scoreOverScored - sb.scoreOverScored, 4),
+  latencyRatio: round(div(sa.latencyMeanS, sb.latencyMeanS), 2),
+  tokensRatio: round(div(sa.totalTokensMean, sb.totalTokensMean), 2),
+  gatewayCostRatio: round(div(sa.gatewayCostUsdMean, sb.gatewayCostUsdMean), 2),
+  usdPer1kTokensRatio: round(div(sa.usdPer1kTokens, sb.usdPer1kTokens), 2),
+  totalCostRatioInclSpecialist: round(div(sa.gatewayCostUsdTotal + sa.specialistToolCostUsdTotal, sb.gatewayCostUsdTotal + sb.specialistToolCostUsdTotal), 2),
+});
 const problems = [];
 const close = (a, b) => a === b || (typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) <= Math.max(1e-9, Math.abs(b) * 0.002 + 0.00001));
 for (const bench of BENCHMARKS) {
@@ -339,6 +385,13 @@ for (const bench of BENCHMARKS) {
   const { pairedTasks, ...cmp } = expected.fullRun[bench];
   if (!close(benchmarks[bench].fullRun.pairedTasks, pairedTasks)) problems.push(`${bench}.fullRun.pairedTasks: ${benchmarks[bench].fullRun.pairedTasks} vs notebook ${pairedTasks}`);
   for (const [k, v] of Object.entries(cmp)) if (!close(benchmarks[bench].fullRun.comparison[k], v)) problems.push(`${bench}.fullRun.comparison.${k}: ${benchmarks[bench].fullRun.comparison[k]} vs notebook ${v}`);
+  for (const { a, b, ...vals } of expected.pairs[bench]) {
+    const got = benchmarks[bench].summary[a] && benchmarks[bench].summary[b] ? pairFigures(benchmarks[bench].summary[a], benchmarks[bench].summary[b]) : {};
+    for (const [k, v] of Object.entries(vals)) if (!close(got[k], v)) problems.push(`${bench}.pair.${a}/${b}.${k}: computed ${got[k]} vs notebook ${v}`);
+  }
+  for (const [arm, vals] of Object.entries(expected.fullRunReference[bench])) for (const [k, v] of Object.entries(vals)) if (!close(benchmarks[bench].fullRun.referenceArms[arm]?.[k], v)) problems.push(`${bench}.fullRun.referenceArms.${arm}.${k}: ${benchmarks[bench].fullRun.referenceArms[arm]?.[k]} vs notebook ${v}`);
+  // Every reference arm the manifest announces must have its rows in the folder, else it is silently missing from the page.
+  for (const arm of REFERENCE_ARMS[bench] ?? []) if (!benchmarks[bench].summary[arm]) problems.push(`${bench}: reference arm ${arm} announced in manifest.reference_arms but has no evaluation rows`);
 }
 if (problems.length) {
   console.error('Cross-check against the notebook FAILED:\n  ' + problems.join('\n  '));
@@ -350,16 +403,20 @@ const arms = Object.fromEntries(
   ARMS.filter((a) => armMeta[a]).map((a) => {
     const m = armMeta[a];
     const pres = ARM_PRESENTATION[a] ?? { label: m.model, short: m.model };
+    // An arm that ran on only some benchmarks says so (a reference arm added later, for one capability).
+    const ran = BENCHMARKS.filter((b) => benchmarks[b].arms.some((x) => x.arm === a));
+    const only = ran.length < BENCHMARKS.length ? `; ${ran.map((b) => benchmarks[b].title).join(' and ')} only` : '';
     return [a, {
       ...pres,
       model: m.model,
       apiModelId: m.apiModelId,
       path: m.path,
       route: m.route,
+      referenceArm: !!m.referenceArm,
       inputModalities: m.inputModalities,
-      description: m.path === 'mcp'
+      description: (m.path === 'mcp'
         ? `text-only model + Eden AI MCP (${toolCount}-tool catalogue; any other Eden AI tool reachable through search_tools / run_tool); the model decides whether and what to call`
-        : 'natively multimodal model; image or audio delivered as a native content part; no tools',
+        : 'natively multimodal model; image or audio delivered as a native content part; no tools') + only,
     }];
   }),
 );
@@ -373,6 +430,8 @@ const out = {
     codeCommit: manifest.sources.mmmu_pro.source_code_git_commit,
     notebook: `notebooks/${FOLDER}_analysis.ipynb`,
     sources: Object.fromEntries(Object.entries(manifest.sources).map(([k, v]) => [k, { runName: v.run_name, evaluatedAt: v.evaluated_at, evaluationRows: v.evaluation_rows, codeCommit: v.source_code_git_commit }])),
+    // Source run of each reference arm, per benchmark (own run folder, identical sample; rows copied for the selected tasks only).
+    referenceSources: Object.fromEntries(Object.entries(manifest.reference_arms ?? {}).map(([bench, arms]) => [bench, Object.fromEntries(Object.entries(arms).map(([arm, v]) => [arm, { runName: v.run_name, evaluatedAt: v.evaluated_at, evaluationRows: v.evaluation_rows, rowsCopied: v.rows_copied, codeCommit: v.source_code_git_commit, note: v.note ?? null }]))])),
     curationScript: 'scripts/curate-showcase.mjs',
     crossCheckedAgainstNotebook: true,
   },

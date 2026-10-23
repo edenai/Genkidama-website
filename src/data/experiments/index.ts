@@ -12,6 +12,10 @@
  * input through Eden AI's MCP tools, `native` = the model reads the input
  * itself). Arms are listed in the JSON; the components never name one.
  * Comparisons are stated relative to `referenceArm` (the native route).
+ * An arm flagged `referenceArm: true` in its `ArmInfo` is a *reference arm*
+ * of the source folder: a further system run on the identical sample and
+ * shown on the same selected tasks, but which took no part in the selection
+ * rules (those compare the two selection arms only).
  *
  * Vocabulary (matches the comparison repository):
  *   arm        one of the systems compared
@@ -40,6 +44,8 @@ export interface ArmInfo {
   apiModelId: string | null;
   path: ExecutionPath;
   route: string;
+  /** Run on the same selected tasks but not part of the selection rules. */
+  referenceArm: boolean;
   inputModalities: string[] | null;
   description: string;
 }
@@ -144,6 +150,8 @@ export interface FullRun {
   pairMatrix: Record<string, Record<string, number>>;
   /** Source field names: deepseek_better, equal, gemini_better, deepseek_not_scored, gemini_not_scored, neither_scored. */
   comparison: Record<string, number>;
+  /** Complete run of each reference arm on the identical sample (its own run folder). */
+  referenceArms: Record<ArmId, FullRunArm & { run_name?: string; label?: string; api_model_id?: string }>;
 }
 
 export interface ToolUsage {
@@ -165,6 +173,7 @@ export interface BenchmarkArm {
   route: string;
   path: ExecutionPath;
   offerMcpTools: boolean;
+  referenceArm: boolean;
   inputModalities: string[] | null;
   delivery: string | null;
 }
@@ -219,6 +228,8 @@ export interface Showcase {
     codeCommit: string;
     notebook: string;
     sources: Record<BenchmarkId, { runName: string; evaluatedAt: string; evaluationRows: number; codeCommit: string }>;
+    /** Source run of each reference arm, per benchmark. */
+    referenceSources: Partial<Record<BenchmarkId, Record<ArmId, { runName: string; evaluatedAt: string; evaluationRows: number; rowsCopied: number; codeCommit: string; note: string | null }>>>;
     curationScript: string;
     crossCheckedAgainstNotebook: boolean;
   };
@@ -246,8 +257,11 @@ export const armsOf = (bench: BenchmarkId): ArmId[] => experiments.benchmarks[be
 /** Arms compared against the reference on one benchmark (every arm but the reference). */
 export const comparedArms = (bench: BenchmarkId): ArmId[] => armsOf(bench).filter((a) => a !== experiments.comparisons[bench].reference);
 
-/** The most recent evaluation date across the source runs (YYYY-MM-DD). */
-export const evaluatedAt = Object.values(experiments.provenance.sources).map((s) => s.evaluatedAt).sort().at(-1)!.slice(0, 10);
+/** The most recent evaluation date across the source runs, reference arms included (YYYY-MM-DD). */
+export const evaluatedAt = [
+  ...Object.values(experiments.provenance.sources).map((s) => s.evaluatedAt),
+  ...Object.values(experiments.provenance.referenceSources ?? {}).flatMap((arms) => Object.values(arms).map((s) => s.evaluatedAt)),
+].sort().at(-1)!.slice(0, 10);
 
 // --- Formatting (display only; never changes a value's meaning) -----------
 const dash = '—';

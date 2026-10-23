@@ -144,7 +144,10 @@ const werArms = list.filter((a) => (b.summary[a].werMean ?? null) !== null);
             {comparedArms(bench).map((arm) => (
               <>
                 <div><dt class="label label--2xs">{arms[arm].short} ÷ {ref.short} · gateway charge per run</dt><dd class="num">{fmt.x(cmp.versus[arm]?.gatewayCostRatio)}</dd></div>
-                <div><dt class="label label--2xs">{arms[arm].short} gateway + specialist-tool ÷ {ref.short} gateway · totals</dt><dd class="num">{fmt.x(cmp.versus[arm]?.totalCostRatioInclSpecialist)}</dd></div>
+                {/* The totals indicator exists for routes with a specialist-tool charge; a native arm has only the gateway charge, stated above. */}
+                {b.summary[arm].runsWithSpecialistCost > 0 && (
+                  <div><dt class="label label--2xs">{arms[arm].short} gateway + specialist-tool ÷ {ref.short} gateway · totals</dt><dd class="num">{fmt.x(cmp.versus[arm]?.totalCostRatioInclSpecialist)}</dd></div>
+                )}
               </>
             ))}
           </dl>
