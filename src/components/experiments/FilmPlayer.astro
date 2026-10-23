@@ -1,14 +1,19 @@
 ---
 /**
  * The film, framed like the page's other instruments: the hairline frame with
- * corner ticks, a bar with a label, the picture, and one control. The video has
+ * corner ticks, a bar with a label, the picture, and the controls. The video has
  * a soundtrack and plays with sound on the visitor's click (never muted behind
  * their back), plays inline and loops natively (the source's last frame is its first).
- * The whole surface is one button: it plays, and while the film runs it pauses;
- * the glyph is shown only when the film is not playing. The frame's hairline
- * and ticks turn to energy only while the film plays. Interface state follows
- * the media element's own events, so a pause the browser decides (a backgrounded
- * phone, low power) shows up correctly too.
+ *
+ * Two layers of control. The whole picture is one button: it plays, and while the
+ * film runs it pauses; its glyph is shown only when the film is not playing. Under
+ * it, a bar with four controls: play/pause, a seek bar (a native range input, so
+ * pointer, touch and arrow keys all work), mute, fullscreen, plus the time. The bar
+ * shows only while the pointer is over the picture or keyboard focus is inside it,
+ * so nothing sits on the film while it loops; on touch screens, where there is no
+ * hover, a touch shows it for a moment (and it stays while the film is paused).
+ * Interface state follows the media element's own events, so a pause the browser
+ * decides (a backgrounded phone, low power) shows up correctly too.
  */
 import { film } from '@data/film';
 
@@ -16,15 +21,16 @@ interface Props {
   class?: string;
 }
 const { class: className } = Astro.props;
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 ---
 
-<figure class:list={['film frame', className]} data-film style={`--film-w: ${film.width}; --film-h: ${film.height};`}>
+<figure class:list={['film frame', className]} data-film data-film-duration={film.duration} style={`--film-w: ${film.width}; --film-h: ${film.height};`}>
   <figcaption class="frame__bar">
     <span class="label"><span class="dot film__dot" aria-hidden="true"></span> the film</span>
-    <span class="label label--2xs film__hint">click to play with sound · click to pause</span>
+    <span class="label label--2xs film__hint">with sound · seek, mute, fullscreen</span>
   </figcaption>
 
-  <div class="film__surface">
+  <div class="film__surface" data-film-surface>
     <video
       class="film__video"
       src={film.src}
@@ -38,64 +44,168 @@ const { class: className } = Astro.props;
       aria-hidden="true"
       data-film-video
     ></video>
-    <button class="film__toggle" type="button" aria-label="Play the film" data-film-toggle>
+    <button class="film__toggle" type="button" aria-label="Play the film with sound" data-film-toggle>
       <span class="film__scrim" aria-hidden="true"></span>
       <span class="film__glyph" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="28" height="28" focusable="false"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
       </span>
       <span class="film__cta label" aria-hidden="true" data-film-cta>play</span>
     </button>
+
+    <div class="film__controls" data-film-controls>
+      <button class="film__btn" type="button" aria-label="Play" data-film-play>
+        <svg class="film__ico film__ico--play" viewBox="0 0 24 24" width="20" height="20" focusable="false" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
+        <svg class="film__ico film__ico--pause" viewBox="0 0 24 24" width="20" height="20" focusable="false" aria-hidden="true"><path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z" fill="currentColor" /></svg>
+      </button>
+      <span class="film__time label label--2xs" aria-hidden="true"><span data-film-current>0:00</span><span class="film__time-sep"> / </span><span data-film-total>{mmss(film.duration)}</span></span>
+      <input class="film__seek" type="range" min="0" max={film.duration} step="0.5" value="0" aria-label="Seek" aria-valuetext={`0:00 of ${mmss(film.duration)}`} data-film-seek style="--film-progress: 0%" />
+      <button class="film__btn" type="button" aria-label="Mute" aria-pressed="false" data-film-mute>
+        <svg class="film__ico film__ico--sound" viewBox="0 0 24 24" width="20" height="20" focusable="false" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor" /><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.5 7.5 0 0 1 0 10.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+        <svg class="film__ico film__ico--muted" viewBox="0 0 24 24" width="20" height="20" focusable="false" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor" /><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </button>
+      <button class="film__btn" type="button" aria-label="Enter fullscreen" data-film-full>
+        <svg class="film__ico film__ico--enter" viewBox="0 0 24 24" width="20" height="20" focusable="false" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <svg class="film__ico film__ico--exit" viewBox="0 0 24 24" width="20" height="20" focusable="false" aria-hidden="true"><path d="M9 4v5H4M15 9V4M20 9h-5M15 20v-5h5M9 15v5M4 15h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </button>
+    </div>
+
     <p class="film__error label label--2xs" hidden data-film-error>film unavailable</p>
     <p class="film__error film__error--blocked label label--2xs" hidden data-film-blocked>the browser blocked playback · click once more</p>
   </div>
 </figure>
 
 <script>
+  const mmss = (s: number) => (Number.isFinite(s) && s >= 0 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '0:00');
+
   for (const root of document.querySelectorAll<HTMLElement>('[data-film]')) {
     const video = root.querySelector<HTMLVideoElement>('[data-film-video]');
+    const surface = root.querySelector<HTMLElement>('[data-film-surface]');
     const toggle = root.querySelector<HTMLButtonElement>('[data-film-toggle]');
     const cta = root.querySelector<HTMLElement>('[data-film-cta]');
+    const controls = root.querySelector<HTMLElement>('[data-film-controls]');
+    const play = root.querySelector<HTMLButtonElement>('[data-film-play]');
+    const seek = root.querySelector<HTMLInputElement>('[data-film-seek]');
+    const current = root.querySelector<HTMLElement>('[data-film-current]');
+    const total = root.querySelector<HTMLElement>('[data-film-total]');
+    const mute = root.querySelector<HTMLButtonElement>('[data-film-mute]');
+    const full = root.querySelector<HTMLButtonElement>('[data-film-full]');
     const error = root.querySelector<HTMLElement>('[data-film-error]');
     const blocked = root.querySelector<HTMLElement>('[data-film-blocked]');
-    if (!video || !toggle || !cta || !error || !blocked) continue;
+    if (!video || !surface || !toggle || !cta || !controls || !play || !seek || !current || !total || !mute || !full || !error || !blocked) continue;
 
-    // Sound is part of the film: it is never muted here. Playback only ever starts from the visitor's click,
-    // which browsers accept for audible media; if a policy still refuses, the control says so and stays usable.
+    // Sound is part of the film: it starts unmuted. Playback only ever starts from the visitor's action, which
+    // browsers accept for audible media; if a policy still refuses, the control says so and stays usable.
     video.muted = false;
     video.volume = 1;
 
+    // The running time: the media's own once its metadata is known, the configured value until then.
+    const configured = Number(root.dataset.filmDuration) || 0;
+    const duration = () => (Number.isFinite(video.duration) && video.duration > 0 ? video.duration : configured);
+    let scrubbing = false;
+
+    const renderTime = () => {
+      const d = duration(), t = video.currentTime;
+      seek.max = String(d);
+      if (!scrubbing) seek.value = String(Math.min(t, d));
+      const shown = scrubbing ? Number(seek.value) : t;
+      seek.style.setProperty('--film-progress', `${d > 0 ? (Math.min(shown, d) / d) * 100 : 0}%`);
+      seek.setAttribute('aria-valuetext', `${mmss(shown)} of ${mmss(d)}`);
+      current.textContent = mmss(shown);
+      total.textContent = mmss(d);
+    };
     const render = () => {
       const playing = !video.paused && !video.ended;
       root.classList.toggle('is-playing', playing);
       toggle.setAttribute('aria-label', playing ? 'Pause the film' : 'Play the film with sound');
+      play.setAttribute('aria-label', playing ? 'Pause' : 'Play');
       cta.textContent = !playing && video.currentTime > 0 ? 'resume' : 'play';
+      mute.setAttribute('aria-pressed', String(video.muted));
+      mute.setAttribute('aria-label', video.muted ? 'Unmute' : 'Mute');
+      root.classList.toggle('is-muted', video.muted);
       if (playing) blocked.hidden = true;
+      renderTime();
     };
     const fail = () => {
       root.classList.add('is-error');
       toggle.hidden = true;
+      controls.hidden = true;
       error.hidden = false;
     };
 
-    toggle.addEventListener('click', () => {
+    // Play / pause: from the picture or from the bar. Both go through the same path.
+    const startOrPause = () => {
       if (!video.paused) {
         video.pause();
         return;
       }
-      video.muted = false;
       video.play().catch((e: unknown) => {
-        // A medium the browser cannot decode is a failure. A policy refusal (NotAllowedError) is not
-        // worked around by muting: the film stays paused, the control stays, and a note asks for one
-        // more click. A play() interrupted by a pause() just leaves the film paused.
+        // A medium the browser cannot decode is a failure. A policy refusal (NotAllowedError) is not worked
+        // around by muting: the film stays paused, the controls stay, and a note asks for one more action.
+        // A play() interrupted by a pause() just leaves the film paused.
         const name = (e as { name?: string })?.name;
         if (name === 'NotSupportedError') fail();
         else if (name === 'NotAllowedError') { blocked.hidden = false; render(); }
         else render();
       });
+    };
+    toggle.addEventListener('click', startOrPause);
+    play.addEventListener('click', startOrPause);
+
+    // Seek: the range input is the single source of the scrub position while the pointer (or a key) holds it;
+    // the media's own time drives it otherwise. Seeking never changes whether the film is playing.
+    const applySeek = () => {
+      const d = duration();
+      if (d > 0) video.currentTime = Math.min(Math.max(0, Number(seek.value)), d - 0.001);
+      renderTime();
+    };
+    seek.addEventListener('pointerdown', () => { scrubbing = true; });
+    seek.addEventListener('input', () => { scrubbing = true; applySeek(); });
+    seek.addEventListener('change', () => { applySeek(); scrubbing = false; renderTime(); });
+    seek.addEventListener('pointerup', () => { scrubbing = false; renderTime(); });
+    seek.addEventListener('pointercancel', () => { scrubbing = false; renderTime(); });
+    seek.addEventListener('keyup', () => { scrubbing = false; renderTime(); });
+
+    // Mute is a property of the sound, not of playback: it toggles independently of play/pause.
+    mute.addEventListener('click', () => { video.muted = !video.muted; render(); });
+
+    // Fullscreen on the whole figure so the bar stays usable; iOS Safari only lets the video itself go fullscreen.
+    type VideoFS = HTMLVideoElement & { webkitEnterFullscreen?: () => void; webkitSupportsFullscreen?: boolean };
+    const vfs = video as VideoFS;
+    const fsSupported = !!(document.fullscreenEnabled && root.requestFullscreen) || !!vfs.webkitSupportsFullscreen;
+    if (!fsSupported) full.hidden = true;
+    const renderFullscreen = () => {
+      const on = document.fullscreenElement === root;
+      root.classList.toggle('is-fullscreen', on);
+      full.setAttribute('aria-label', on ? 'Exit fullscreen' : 'Enter fullscreen');
+    };
+    full.addEventListener('click', () => {
+      if (document.fullscreenElement === root) { document.exitFullscreen().catch(() => renderFullscreen()); return; }
+      if (document.fullscreenEnabled && root.requestFullscreen) {
+        root.requestFullscreen().catch(() => {
+          // Refused (no gesture, an iframe policy, a browser setting): fall back to the video's own fullscreen if there is one, else do nothing visible.
+          if (vfs.webkitEnterFullscreen) vfs.webkitEnterFullscreen();
+          renderFullscreen();
+        });
+      } else if (vfs.webkitEnterFullscreen) vfs.webkitEnterFullscreen();
     });
-    for (const type of ['play', 'playing', 'pause'] as const) video.addEventListener(type, render);
+    document.addEventListener('fullscreenchange', renderFullscreen);
+
+    // The bar is a hover thing: CSS shows it while the pointer is over the picture or keyboard focus is inside
+    // (:has(:focus-visible)). Touch has no hover, so a touch shows it for 2.5 s instead.
+    let hideTimer = 0;
+    const touched = () => {
+      root.classList.add('is-active');
+      window.clearTimeout(hideTimer);
+      hideTimer = window.setTimeout(() => root.classList.remove('is-active'), 2500);
+    };
+    surface.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch' || e.pointerType === 'pen') touched(); });
+    surface.addEventListener('touchstart', touched, { passive: true });
+
+    for (const type of ['play', 'playing', 'pause', 'ended', 'volumechange'] as const) video.addEventListener(type, render);
+    for (const type of ['timeupdate', 'seeking', 'seeked', 'loadedmetadata', 'durationchange', 'emptied'] as const) video.addEventListener(type, renderTime);
     video.addEventListener('error', fail);
     render();
+    renderFullscreen();
   }
 </script>
 
@@ -118,7 +228,7 @@ const { class: className } = Astro.props;
     background: var(--bg-0);
   }
 
-  /* One control over the whole surface. Its contents fade while the film plays; the target stays. */
+  /* One control over the whole picture. Its contents fade while the film plays; the target stays. */
   .film__toggle {
     position: absolute;
     inset: 0;
@@ -160,7 +270,7 @@ const { class: className } = Astro.props;
   .film__toggle:hover .film__glyph { border-color: var(--energy-500); color: var(--energy-100); }
   .film__toggle:hover .film__cta { color: var(--energy-300); }
 
-  /* Playing: the control's contents disappear, the frame carries the energy (hairline and ticks, no glow). */
+  /* Playing: the picture control's contents disappear, the frame carries the energy (hairline and ticks, no glow). */
   .film.is-playing .film__scrim,
   .film.is-playing .film__glyph,
   .film.is-playing .film__cta { opacity: 0; }
@@ -169,7 +279,124 @@ const { class: className } = Astro.props;
   .film.is-playing::after { border-color: var(--energy-500); }
   .film.is-playing .film__dot { background: var(--energy-500); }
 
-  /* The medium cannot be played: the poster and the layout stay; the control goes, a plain note takes its corner. */
+  /* The bar: four controls and the time on a quiet gradient at the foot of the picture. Hidden by default so the
+     film (and its loop) is never covered; shown while the pointer is over the picture, while keyboard focus is inside
+     it, for a moment after a touch, and, on touch screens, while the film is paused. */
+  .film__controls {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-3) var(--space-2);
+    background: linear-gradient(to top, rgba(5, 7, 8, 0.78), rgba(5, 7, 8, 0));
+    color: var(--fg-1);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .film__surface:hover .film__controls,
+  .film.is-active .film__controls,
+  .film:has(:focus-visible) .film__controls {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  @media (hover: none) {
+    .film:not(.is-playing) .film__controls { opacity: 1; pointer-events: auto; }
+  }
+  .film__controls[hidden] { display: none; }
+  .film__btn {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--fg-1);
+    border-radius: var(--radius-1);
+    transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  }
+  .film__btn:hover { color: var(--energy-100); background: rgba(238, 242, 244, 0.06); }
+  .film__btn:focus-visible {
+    outline: 2px solid var(--energy-500);
+    outline-offset: -2px;
+    color: var(--energy-100);
+  }
+  .film__ico { display: block; }
+  .film__ico--pause, .film__ico--muted, .film__ico--exit { display: none; }
+  .film.is-playing .film__ico--play { display: none; }
+  .film.is-playing .film__ico--pause { display: block; }
+  .film.is-muted .film__ico--sound { display: none; }
+  .film.is-muted .film__ico--muted { display: block; }
+  .film.is-fullscreen .film__ico--enter { display: none; }
+  .film.is-fullscreen .film__ico--exit { display: block; }
+
+  .film__time {
+    flex: 0 0 auto;
+    min-width: 5.5em;
+    color: var(--fg-1);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  /* The seek bar: a native range input (pointer, touch, arrow keys, screen readers), drawn as a hairline track with the
+     played part in energy and a small round thumb. The played part is a gradient driven by --film-progress. */
+  .film__seek {
+    flex: 1 1 auto;
+    min-width: 4rem;
+    height: 2rem;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .film__seek:focus-visible { outline: 2px solid var(--energy-500); outline-offset: 2px; border-radius: var(--radius-1); }
+  .film__seek::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--energy-500) 0 var(--film-progress), rgba(238, 242, 244, 0.22) var(--film-progress) 100%);
+  }
+  .film__seek::-moz-range-track { height: 3px; border-radius: 2px; background: rgba(238, 242, 244, 0.22); }
+  .film__seek::-moz-range-progress { height: 3px; border-radius: 2px; background: var(--energy-500); }
+  .film__seek::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5.5px;
+    border-radius: 50%;
+    border: 1px solid var(--bg-0);
+    background: var(--fg-0);
+    box-shadow: 0 0 0 0 rgba(34, 211, 240, 0);
+    transition: box-shadow var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  }
+  .film__seek::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--bg-0);
+    background: var(--fg-0);
+  }
+  .film__seek:hover::-webkit-slider-thumb,
+  .film__seek:focus-visible::-webkit-slider-thumb { background: var(--energy-100); box-shadow: 0 0 0 5px rgba(34, 211, 240, 0.22); }
+  .film__seek:hover::-moz-range-thumb,
+  .film__seek:focus-visible::-moz-range-thumb { background: var(--energy-100); }
+
+  /* Fullscreen: the figure fills the screen, the picture takes the height, the bar and the controls stay. */
+  .film:fullscreen {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--bg-0);
+  }
+  .film:fullscreen .film__surface { aspect-ratio: auto; height: 100%; }
+  .film:fullscreen::before, .film:fullscreen::after { display: none; }
+
+  /* The medium cannot be played: the poster and the layout stay; the controls go, a plain note takes a corner. */
   .film__error {
     position: absolute;
     inset-block-end: var(--space-3);
@@ -181,10 +408,17 @@ const { class: className } = Astro.props;
     color: var(--fg-2);
   }
   .film__error[hidden] { display: none; }
-  .film__error--blocked { inset-inline-start: auto; inset-inline-end: var(--space-3); color: var(--fg-1); }
+  .film__error--blocked { inset-inline-start: auto; inset-inline-end: var(--space-3); inset-block-end: 3.25rem; color: var(--fg-1); }
 
   @media (max-width: 640px) {
     .film__glyph { width: 3.75rem; height: 3.75rem; }
     .film__hint { display: none; }   /* the control itself says play / resume; the bar stays one line on phones */
+    .film__controls { gap: var(--space-1, 0.25rem); padding-inline: var(--space-2); }
+    .film__time { min-width: 0; }
+    .film__time-sep, .film__time [data-film-total] { display: none; }   /* the current time only; the total is on the seek bar's value text */
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .film__seek::-webkit-slider-thumb { width: 18px; height: 18px; margin-top: -7.5px; }
+    .film__seek::-moz-range-thumb { width: 18px; height: 18px; }
   }
 </style>
